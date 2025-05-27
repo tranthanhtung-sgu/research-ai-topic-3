@@ -20,33 +20,33 @@ Signal Duration: 10.00 seconds
 - Number of T_Offsets detected: 15
 
 ### B. Intervals and Durations ###
-- RR Mean (ms): Not reliably calculated or no valid intervals found.
+- RR Mean (ms): 649.29ms (StdDev: 30.11ms, N: 14)
 - PP Mean (ms): 649.29ms (StdDev: 28.15ms, N: 14)
 - PR Mean (ms): 100.00ms (StdDev: 10.00ms, N: 2)
 - QRS Mean (ms): 185.00ms (StdDev: 11.18ms, N: 6)
 - QT Mean (ms): 398.57ms (StdDev: 20.30ms, N: 14)
-- QTc Mean: 494.82 (StdDev: 23.80, N: 14)
+- QTc Mean (Bazett): 497.31 (StdDev: 25.57, N: 14)
 
 ### C. Amplitudes (from Cleaned ECG) ###
-- P Peak Amp: Mean=0.050, Std=0.021 (N=15) units
-- Q Peak Amp: Mean=-0.098, Std=0.010 (N=14) units
-- R Peak Amp: Mean=0.580, Std=0.064 (N=15) units
-- S Peak Amp: Mean=-0.081, Std=0.024 (N=14) units
-- T Peak Amp: Mean=0.091, Std=0.023 (N=15) units
+- P Peak Amp: Mean=0.050, Std=0.021 (N=15) arbitrary units
+- Q Peak Amp: Mean=-0.098, Std=0.010 (N=14) arbitrary units
+- R Peak Amp: Mean=0.580, Std=0.064 (N=15) arbitrary units
+- S Peak Amp: Mean=-0.081, Std=0.024 (N=14) arbitrary units
+- T Peak Amp: Mean=0.091, Std=0.023 (N=15) arbitrary units
 
 ### D. ST-Segment Analysis (Basic) ###
-- ST-Segment Mean Deviation (J+60ms from PR baseline): 0.004 units
+- ST-Segment Mean Deviation (J+60ms from PR baseline): 0.004 arbitrary units
 - ST-Segment Std Deviation: 0.034 (N: 9)
 - Note: T-wave/U-wave morphology requires visual assessment (not quantified beyond T-peak amplitude).
 
 ### E. Axis Information ###
-- QRS Axis (Lead I & aVF net deflections): 44.5 degrees
-- P-wave axis and T-wave axis: Not implemented.
+- QRS Axis (Median peak deflections in Lead I & aVF): 37.9 degrees
+- P-wave axis and T-wave axis: Not implemented in this script.
 
 ### F. Heart Rate Variability (HRV) & Rate ###
-- Average Heart Rate: Not calculated.
+- Average Heart Rate (from RR intervals): 92.41 bpm
   **HRV Metrics (from nk.hrv()):**
-  (Note: Some metrics, esp. frequency-domain & complex non-linear, are less reliable on short signals like this 10s strip.)
+  (Note: Frequency-domain & complex non-linear metrics need longer, stable recordings.)
     Time-Domain:
       HRV_MeanNN: 649.286
       HRV_SDNN: 31.247
@@ -83,7 +83,7 @@ Signal Duration: 10.00 seconds
       HRV_HFn: nan
       HRV_LnHF: nan
       HRV_HFD: nan
-    Non-Linear / Other:
+    Non-Linear / Other (HRV specific):
       HRV_SDANN1: nan
       HRV_SDANN2: nan
       HRV_SDANN5: nan
@@ -132,7 +132,7 @@ Signal Duration: 10.00 seconds
       HRV_CD: 2.315
       HRV_KFD: 1.577
       HRV_LZC: 1.088
-    Recurrence Quantification Analysis (RQA):
+    Recurrence Quantification Analysis (RQA - separate call):
       RecurrenceRate: 0.0000
       DiagRec: nan
       Determinism: nan
@@ -148,33 +148,41 @@ Signal Duration: 10.00 seconds
       W: 4.5000
       WMax: 7.0000
       WEn: 1.7918
-  HRV Analysis failed/incomplete: module 'neurokit2' has no attribute 'hrv_plot'
-- Rhythm Type: Based on above parameters.
+  (Poincaré plot created manually as fallback)
+- Rhythm Type: (Requires interpretation of overall parameters).
 - RSA (Respiratory Sinus Arrhythmia): Requires RSP signal, not calculated here.
 
 ### G. Signal Quality ###
-- Mean ECG Quality (NeuroKit): 0.577 (0-1, higher better relative to avg morphology)
+- Mean ECG Quality (NeuroKit's method): 0.577 (0-1, relative to avg morphology)
 
 ### H. Cardiac Phase Information ###
-- Mean Atrial: 0.229
-- Mean Completion_Atrial: 0.460
-- Mean Ventricular: 0.414
-- Mean Completion_Ventricular: 0.446
-  (Cardiac phase plot saved)
+- Mean Atrial: 0.219 (over first 10.0s)
+- Mean Completion_Atrial: 0.462 (over first 10.0s)
+- Mean Ventricular: 0.438 (over first 10.0s)
+- Mean Completion_Ventricular: 0.469 (over first 10.0s)
+  (Cardiac phase plot saved for first 10.0s)
 
 ### I. Representative Heartbeats ###
-  (Segmented heartbeats plot saved)
+  (Segmented heartbeats plot saved, N=15)
+
+### J. Detailed Waveform Delineation Plots (Zoomed) ###
+- Zoomed R-peaks plot saved (6 peaks shown).
+- Zoomed All Wave Peaks plot saved.
+- Zoomed P-Wave Boundaries plot saved.
+- Zoomed T-Wave Boundaries plot saved.
+- Zoomed QRS (R-Wave) Boundaries plot saved.
 
 ==============================
 ### Clinical Summary Suggestion (NSR Focus) ###
 This detailed report provides extensive parameters for a Normal Sinus Rhythm assessment.
 Key NSR indicators to check from above sections:
-  - Rate: 60-100 bpm (Section F)
-  - Rhythm: Regular RR & PP intervals, low HRV_SDNN/RMSSD (Section B & F)
-  - P-waves: Present before each QRS, consistent morphology (Section A, C, I)
+  - Rate: Approx 60-100 bpm (Section F)
+  - Rhythm: Check regularity of RR & PP intervals, HRV_SDNN/RMSSD (Section B & F)
+  - P-waves: Present before each QRS, consistent morphology (Section A, C, I, J)
   - P:QRS Ratio: Approx 1:1 (Section A - compare P_Peaks to R_Peaks count)
-  - PR Interval: 120-200ms, constant (Section B)
-  - QRS Duration: <120ms, typically <100ms (Section B)
+  - PR Interval: Approx 120-200ms, constant (Section B)
+  - QRS Duration: Approx <120ms (Section B)
   - QRS Axis: Normal range (e.g., -30 to +90 degrees) (Section E)
-Please correlate with full clinical picture.
+  - QT/QTc: Within normal limits (Section B)
+Please correlate with full clinical picture. This is not a diagnostic tool.
 ==============================

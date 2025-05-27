@@ -1,366 +1,3 @@
-# import numpy as np
-# import neurokit2 as nk
-# import matplotlib.pyplot as plt
-# import glob
-# import os
-# import pandas as pd
-
-# # --- Helper function to save plots ---
-# def save_plot(fig, filename_base, lead_name_sanitized):
-#     """Saves the given matplotlib figure and closes it."""
-#     if not fig.get_size_inches()[0] > 1 or not fig.get_size_inches()[1] > 1:
-#         fig.set_size_inches(10, 6)
-#     filepath = f"{filename_base}_{lead_name_sanitized}.png"
-#     try:
-#         fig.savefig(filepath)
-#         print(f"Saved plot: {filepath}")
-#     except Exception as e:
-#         print(f"Failed to save plot {filepath}: {str(e)}")
-#     plt.close(fig)
-
-# def calculate_pr_intervals(p_onsets, r_onsets, sampling_rate):
-#     """
-#     Calculates PR intervals by pairing P-onsets with subsequent R-onsets.
-#     Returns a list of PR intervals in milliseconds.
-#     """
-#     pr_intervals_ms = []
-#     if not p_onsets or not r_onsets:
-#         return pr_intervals_ms
-
-#     p_onsets_valid = sorted([p for p in p_onsets if not np.isnan(p)])
-#     r_onsets_valid = sorted([r for r in r_onsets if not np.isnan(r)])
-
-#     p_idx = 0
-#     for r_onset_val in r_onsets_valid:
-#         # Find the latest P-onset that occurs before the current R-onset
-#         # and is within a reasonable physiological window (e.g., PR < 300ms)
-#         candidate_p_onsets = [
-#             p_onset_val for p_onset_val in p_onsets_valid
-#             if p_onset_val < r_onset_val and \
-#                ((r_onset_val - p_onset_val) / sampling_rate * 1000) < 300 and \
-#                ((r_onset_val - p_onset_val) / sampling_rate * 1000) > 50 # Min PR, e.g. 50ms
-#         ]
-        
-#         if candidate_p_onsets:
-#             # Choose the P-onset closest to (but before) the R-onset
-#             best_p_onset = max(candidate_p_onsets)
-#             pr_interval_samples = r_onset_val - best_p_onset
-#             pr_intervals_ms.append((pr_interval_samples / sampling_rate) * 1000)
-#             # Try to advance p_idx to avoid reusing the same P-onset for multiple R-onsets
-#             # This is a simple heuristic; more complex logic might be needed for very noisy signals
-#             try:
-#                 p_onsets_valid = [p for p in p_onsets_valid if p > best_p_onset]
-#             except: # if p_onsets_valid becomes empty
-#                 pass
-
-#     return pr_intervals_ms
-
-
-# def main_nsr_analysis():
-#     # Step 1: Load the .npy file - CHANGED FOR NSR
-#     npy_file_path = "/home/tony/neurokit/validation/validation01/validation01.npy"
-
-#     # --- Configuration ---
-#     sampling_rate = 100 # Hz
-#     preferred_lead_idx = 1 # Try Lead II
-#     fallback_lead_idx = 0  # Fallback to Lead I
-
-#     report_lines = []
-
-#     try:
-#         ecg_signal_all_leads = np.load(npy_file_path)
-#         report_lines.append(f"Successfully loaded ECG data from: {npy_file_path}")
-#     except FileNotFoundError:
-#         report_lines.append(f"Error: File not found at {npy_file_path}.")
-#         # Dummy data for testing if file not found
-#         print("Creating a dummy NSR-like signal for testing as file not found.")
-#         sampling_rate_dummy = 100
-#         duration_dummy = 10
-#         ecg_signal_all_leads = np.array([nk.ecg_simulate(duration=duration_dummy, sampling_rate=sampling_rate_dummy, heart_rate=75, random_state=42)]*12)
-
-#     except Exception as e:
-#         report_lines.append(f"Error loading .npy file: {str(e)}")
-#         print("\n".join(report_lines))
-#         exit(1)
-
-#     report_lines.append(f"ECG Signal Shape: {ecg_signal_all_leads.shape}")
-
-#     num_leads = ecg_signal_all_leads.shape[0]
-#     if num_leads > preferred_lead_idx:
-#         lead_to_analyze_idx = preferred_lead_idx
-#         lead_name = f"II (index {lead_to_analyze_idx})"
-#     elif num_leads > fallback_lead_idx:
-#         lead_to_analyze_idx = fallback_lead_idx
-#         lead_name = f"I (index {lead_to_analyze_idx})"
-#     elif num_leads > 0:
-#         lead_to_analyze_idx = 0
-#         lead_name = f"Lead {lead_to_analyze_idx+1}"
-#     else:
-#         report_lines.append("Error: No leads found.")
-#         print("\n".join(report_lines))
-#         exit(1)
-
-#     ecg_lead_signal = ecg_signal_all_leads[lead_to_analyze_idx, :]
-#     lead_name_sanitized = lead_name.replace(" ", "_").replace("(", "").replace(")", "")
-
-#     # CHANGED REPORT TITLE
-#     report_lines.insert(0, f"## Normal Sinus Rhythm (NSR) Analysis for ECG Lead {lead_name} ##")
-#     report_lines.append(f"Analyzing Lead: {lead_name}")
-#     report_lines.append(f"Sampling Rate: {sampling_rate} Hz")
-#     report_lines.append(f"Signal Duration: {len(ecg_lead_signal)/sampling_rate:.2f} seconds")
-#     report_lines.append("-" * 30)
-
-#     try:
-#         print(f"\nProcessing Lead {lead_name} for NSR analysis...")
-#         signals, info = nk.ecg_process(ecg_lead_signal, sampling_rate=sampling_rate, method='neurokit')
-
-#         fig_ecg_plot = nk.ecg_plot(signals, info)
-#         if not isinstance(fig_ecg_plot, plt.Figure):
-#             fig_ecg_plot = plt.gcf()
-#         fig_ecg_plot.suptitle(f"Processed ECG for Lead {lead_name} (NSR Analysis)", y=1)
-#         save_plot(fig_ecg_plot, "nsr_processed_ecg", lead_name_sanitized) # CHANGED FILENAME
-
-#         rpeaks_indices = info['ECG_R_Peaks']
-#         report_lines.append("\n### 1. Rate (60-100 bpm) ###")
-#         if len(rpeaks_indices) > 1:
-#             mean_rr_ms = np.mean(np.diff(rpeaks_indices)) / sampling_rate * 1000
-#             heart_rate_bpm = 60000 / mean_rr_ms if mean_rr_ms > 0 else 0
-#             report_lines.append(f"- Average Heart Rate: {heart_rate_bpm:.2f} bpm (calculated from mean R-R interval).")
-#             if 60 <= heart_rate_bpm <= 100:
-#                 report_lines.append("  Observation: Heart rate is within the normal range for NSR (60-100 bpm).")
-#             else:
-#                 report_lines.append("  Observation: Heart rate is outside the typical NSR range (60-100 bpm).")
-#         else:
-#             report_lines.append("- Not enough R-peaks to calculate average heart rate.")
-
-
-#         report_lines.append("\n### 2. Rhythm (Regular: consistent P-P and R-R intervals) ###")
-#         if len(rpeaks_indices) < 5:
-#             report_lines.append("- Not enough R-peaks to reliably assess rhythm regularity.")
-#         else:
-#             rr_intervals_ms = np.diff(rpeaks_indices) / sampling_rate * 1000
-
-#             fig_tachogram, ax_tachogram = plt.subplots(figsize=(12, 4))
-#             ax_tachogram.plot(rr_intervals_ms, marker='o', linestyle='-')
-#             ax_tachogram.set_title(f"Tachogram (R-R Intervals) - Lead {lead_name}")
-#             ax_tachogram.set_xlabel("Beat Number")
-#             ax_tachogram.set_ylabel("R-R Interval (ms)")
-#             save_plot(fig_tachogram, "nsr_tachogram", lead_name_sanitized) # CHANGED FILENAME
-#             report_lines.append("- Tachogram: Shows beat-to-beat R-R interval variation. For NSR, expect relatively consistent R-R intervals.")
-#             report_lines.append(f"  (See nsr_tachogram_{lead_name_sanitized}.png)")
-
-#             try:
-#                 hrv_analysis_results = nk.hrv(rpeaks_indices, sampling_rate=sampling_rate, show=False)
-
-#                 fig_poincare, ax_poincare = plt.subplots(figsize=(6,6))
-#                 rr_n = rr_intervals_ms[:-1]
-#                 rr_n_plus_1 = rr_intervals_ms[1:]
-#                 if len(rr_n) > 0 : # Ensure there's data to plot
-#                     ax_poincare.scatter(rr_n, rr_n_plus_1, c='blue', alpha=0.75)
-#                     min_val = min(np.min(rr_n), np.min(rr_n_plus_1))
-#                     max_val = max(np.max(rr_n), np.max(rr_n_plus_1))
-#                     ax_poincare.plot([min_val, max_val], [min_val, max_val], 'r--', alpha=0.5)
-
-#                     if 'HRV_SD1' in hrv_analysis_results.columns and 'HRV_SD2' in hrv_analysis_results.columns:
-#                         sd1 = hrv_analysis_results['HRV_SD1'].iloc[0]
-#                         sd2 = hrv_analysis_results['HRV_SD2'].iloc[0]
-#                         ax_poincare.text(0.05, 0.9, f'SD1: {sd1:.2f} ms', transform=ax_poincare.transAxes)
-#                         ax_poincare.text(0.05, 0.85, f'SD2: {sd2:.2f} ms', transform=ax_poincare.transAxes)
-                
-#                 ax_poincare.set_title(f"Poincaré Plot - Lead {lead_name}")
-#                 ax_poincare.set_xlabel("RR_n interval (ms)")
-#                 ax_poincare.set_ylabel("RR_n+1 interval (ms)")
-#                 ax_poincare.grid(True, alpha=0.3)
-#                 save_plot(fig_poincare, "nsr_poincare", lead_name_sanitized) # CHANGED FILENAME
-#                 report_lines.append("- Poincaré Plot: Visualizes R-R interval correlation. For NSR, expect a tight cluster along the line of identity.")
-#                 report_lines.append(f"  (See nsr_poincare_{lead_name_sanitized}.png)")
-
-#                 report_lines.append("\n  Key HRV Metrics for Regularity (expect lower values for NSR):")
-#                 hrv_metrics_to_report = ['HRV_MeanNN', 'HRV_SDNN', 'HRV_RMSSD', 'HRV_pNN50', 'HRV_CVNN', 'HRV_SD1', 'HRV_SD2']
-#                 for metric in hrv_metrics_to_report:
-#                     if metric in hrv_analysis_results.columns:
-#                         value = hrv_analysis_results[metric].iloc[0]
-#                         report_lines.append(f"    {metric}: {value:.2f}")
-#                 report_lines.append("  Interpretation: Lower SDNN, RMSSD, pNN50, CVNN, SD1, SD2 suggest more regular rhythm.")
-#             except Exception as e_hrv:
-#                 report_lines.append(f"- HRV Analysis (including Poincaré) failed or incomplete: {str(e_hrv)}")
-#                 print(f"HRV analysis/Poincaré plot failed: {str(e_hrv)}")
-        
-#         # P-P interval regularity (basic check)
-#         p_peaks_indices_valid = [p for p in info.get('ECG_P_Peaks', []) if not np.isnan(p)]
-#         if len(p_peaks_indices_valid) > 2:
-#             pp_intervals_ms = np.diff(p_peaks_indices_valid) / sampling_rate * 1000
-#             mean_pp = np.mean(pp_intervals_ms)
-#             std_pp = np.std(pp_intervals_ms)
-#             report_lines.append(f"- P-P Intervals: Mean={mean_pp:.2f} ms, StdDev={std_pp:.2f} ms. Low StdDev suggests regular atrial activity.")
-#         else:
-#             report_lines.append("- P-P Intervals: Not enough P-peaks detected for P-P interval regularity analysis.")
-
-
-#         report_lines.append("\n### 3. P waves (Uniform morphology, upright in I, II, aVF; one P wave precedes each QRS) ###")
-#         num_r_peaks = len(rpeaks_indices)
-#         p_peaks_indices = [p for p in info.get('ECG_P_Peaks', []) if not np.isnan(p)]
-#         num_p_peaks_detected = len(p_peaks_indices)
-
-#         report_lines.append(f"- Number of R-peaks found: {num_r_peaks}")
-#         report_lines.append(f"- Number of P-peaks detected by NeuroKit: {num_p_peaks_detected}")
-        
-#         if num_r_peaks > 0 and abs(num_p_peaks_detected - num_r_peaks) <= max(1, 0.1 * num_r_peaks) : # Allow for slight misdetection
-#              report_lines.append("- Observation: P-peaks are consistently detected before QRS complexes (approx 1:1 ratio). This is consistent with NSR.")
-#         else:
-#              report_lines.append("- Observation: Number of P-peaks significantly differs from R-peaks. This might indicate issues with P-wave detection or an arrhythmia. Visual inspection is crucial.")
-#         report_lines.append("  Guidance: For NSR, expect a clear P-wave before each QRS. Morphology should be uniform (visual check).")
-#         # P-wave axis (upright/inverted) is a multi-lead assessment, not covered here with single lead focus.
-
-#         fig_pwave_detail, ax_pwave_detail = plt.subplots(figsize=(15, 6))
-#         segment_len_sec = min(5, len(ecg_lead_signal) / sampling_rate - 0.1)
-#         plot_end_sample = int(min(len(signals['ECG_Clean']), segment_len_sec * sampling_rate))
-#         time_axis_segment = np.arange(plot_end_sample) / sampling_rate
-
-#         ax_pwave_detail.plot(time_axis_segment, signals['ECG_Clean'].iloc[:plot_end_sample], label="Cleaned ECG")
-        
-#         p_peaks_plot = [p for p in p_peaks_indices if p < plot_end_sample]
-#         if p_peaks_plot:
-#             ax_pwave_detail.scatter(np.array(p_peaks_plot)/sampling_rate, signals['ECG_Clean'].iloc[p_peaks_plot], 
-#                                 color='red', marker='P', s=100, label="Detected P-peaks (NK)", zorder=5)
-        
-#         r_peaks_plot = [r for r in rpeaks_indices if r < plot_end_sample]
-#         if r_peaks_plot:
-#              ax_pwave_detail.scatter(np.array(r_peaks_plot)/sampling_rate, signals['ECG_Clean'].iloc[r_peaks_plot],
-#                                 color='blue', marker='^', s=100, label="R-peaks", zorder=5)
-
-#         ax_pwave_detail.set_title(f"ECG Segment (Lead {lead_name}) - Detail for P-wave assessment (NSR)")
-#         ax_pwave_detail.set_xlabel("Time (s)")
-#         ax_pwave_detail.set_ylabel("Amplitude")
-#         ax_pwave_detail.legend()
-#         ax_pwave_detail.grid(True, linestyle=':', alpha=0.7)
-#         save_plot(fig_pwave_detail, "nsr_pwave_detail", lead_name_sanitized) # CHANGED FILENAME
-#         report_lines.append(f"  (See nsr_pwave_detail_{lead_name_sanitized}.png for visual inspection of P-waves).")
-
-#         report_lines.append("\n### 4. P:QRS Ratio (1:1) ###")
-#         if num_r_peaks > 0:
-#             ratio = num_p_peaks_detected / num_r_peaks if num_r_peaks > 0 else 0
-#             report_lines.append(f"- Observed P:R-peak ratio: {num_p_peaks_detected}:{num_r_peaks} (approx {ratio:.2f}:1).")
-#             if 0.9 <= ratio <= 1.1: # Allowing some tolerance for detection issues
-#                 report_lines.append("  Observation: P:QRS ratio is approximately 1:1, consistent with NSR.")
-#             else:
-#                 report_lines.append("  Observation: P:QRS ratio deviates from 1:1. Further investigation or P-wave detection tuning may be needed.")
-#         else:
-#             report_lines.append("- Observation: No R-peaks detected, cannot determine P:QRS ratio.")
-
-
-#         report_lines.append("\n### 5. PR Interval (Constant, 0.12-0.20 seconds) ###")
-#         p_onsets_raw = info.get('ECG_P_Onsets', [])
-#         r_onsets_raw = info.get('ECG_R_Onsets', []) # Or use ECG_Q_Peaks if R_Onsets are not reliable
-        
-#         pr_intervals_calculated_ms = calculate_pr_intervals(p_onsets_raw, r_onsets_raw, sampling_rate)
-
-#         if pr_intervals_calculated_ms:
-#             avg_pr = np.nanmean(pr_intervals_calculated_ms)
-#             std_pr = np.nanstd(pr_intervals_calculated_ms)
-#             report_lines.append(f"- Calculated PR Intervals: Average={avg_pr:.2f} ms, StdDev={std_pr:.2f} ms (from {len(pr_intervals_calculated_ms)} intervals).")
-#             if 120 <= avg_pr <= 200:
-#                 report_lines.append("  Observation: Average PR interval is within the normal range (120-200 ms).")
-#             else:
-#                 report_lines.append(f"  Observation: Average PR interval ({avg_pr:.2f} ms) is outside the normal range (120-200 ms).")
-#             if std_pr < 20: # Threshold for "constant" PR interval, can be adjusted
-#                 report_lines.append("  Observation: PR intervals appear relatively constant (StdDev < 20 ms).")
-#             else:
-#                 report_lines.append("  Observation: PR intervals show some variability (StdDev >= 20 ms).")
-#         else:
-#             report_lines.append("- Observation: PR intervals could not be reliably calculated (insufficient/inconsistent P-onsets or R-onsets).")
-
-
-#         report_lines.append("\n### 6. QRS Duration (Narrow, typically <0.10-0.12 seconds) ###")
-#         avg_qrs_duration = np.nan
-#         r_onsets_calc = [x for x in info.get('ECG_R_Onsets', []) if not np.isnan(x)]
-#         r_offsets_calc = [x for x in info.get('ECG_R_Offsets', []) if not np.isnan(x)]
-
-#         qrs_durations_ms_list = []
-#         if r_onsets_calc and r_offsets_calc:
-#             # Pair QRS onsets and offsets
-#             # A simple pairing, assuming they are somewhat ordered and correspond
-#             idx_offset = 0
-#             for r_on in r_onsets_calc:
-#                 # Find the first r_offset after r_on
-#                 found_offset = False
-#                 for i in range(idx_offset, len(r_offsets_calc)):
-#                     if r_offsets_calc[i] > r_on and (r_offsets_calc[i] - r_on)/sampling_rate*1000 < 150 : # Max QRS reasonable duration
-#                         qrs_durations_ms_list.append(((r_offsets_calc[i] - r_on) / sampling_rate) * 1000)
-#                         idx_offset = i + 1 # Start search for next offset from here
-#                         found_offset = True
-#                         break
-#                 if not found_offset: # If no suitable offset found for an onset
-#                     pass # Could log this or handle differently
-
-#         if qrs_durations_ms_list:
-#             avg_qrs_duration = np.nanmean(qrs_durations_ms_list)
-#             report_lines.append(f"- Average QRS duration (from R-onsets/offsets): {avg_qrs_duration:.2f} ms (from {len(qrs_durations_ms_list)} complexes).")
-#             # NSR typically <0.10s (100ms), but up to 0.12s (120ms) can be normal
-#             if avg_qrs_duration < 120:
-#                 report_lines.append("  Observation: QRS duration is narrow (<120ms), consistent with NSR.")
-#             else:
-#                 report_lines.append(f"  Observation: QRS duration ({avg_qrs_duration:.2f}ms) is wider than typical for uncomplicated NSR.")
-
-#             fig_qrs, ax_qrs = plt.subplots(figsize=(8, 5))
-#             ax_qrs.hist(qrs_durations_ms_list, bins=max(5, min(20, len(qrs_durations_ms_list)//2 if len(qrs_durations_ms_list)>10 else 5)), edgecolor='black') # Dynamic bins
-#             ax_qrs.set_title(f"Distribution of QRS Durations - Lead {lead_name}")
-#             ax_qrs.set_xlabel("QRS Duration (ms)")
-#             ax_qrs.set_ylabel("Frequency")
-#             save_plot(fig_qrs, "nsr_qrs_duration_hist", lead_name_sanitized) # CHANGED FILENAME
-#             report_lines.append(f"  (See nsr_qrs_duration_hist_{lead_name_sanitized}.png).")
-#         else:
-#             report_lines.append("- QRS durations could not be calculated (insufficient R-onsets/offsets or pairing issues).")
-        
-#         report_lines.append("\n" + "="*30)
-#         report_lines.append("### Clinical Summary Suggestion (NSR) ###")
-#         report_lines.append(f"The analysis of ECG Lead {lead_name} demonstrates features consistent with Normal Sinus Rhythm:")
-        
-#         rate_check = "within normal limits (60-100 bpm)" if 'heart_rate_bpm' in locals() and 60 <= heart_rate_bpm <= 100 else "outside normal limits or unassessable"
-#         report_lines.append(f"1. **Rate**: Average heart rate appears {rate_check}.")
-        
-#         rhythm_check = "regular" if 'hrv_analysis_results' in locals() and hrv_analysis_results['HRV_SDNN'].iloc[0] < 50 else "showing some variability or unassessable" # Example threshold
-#         report_lines.append(f"2. **Rhythm**: Appears generally {rhythm_check}, with relatively consistent R-R intervals noted on tachogram and a clustered Poincaré plot.")
-        
-#         pwave_check = "present and consistently precede QRS complexes (approx 1:1)" if 'num_r_peaks' in locals() and num_r_peaks > 0 and abs(num_p_peaks_detected - num_r_peaks) <= max(1, 0.1 * num_r_peaks) else "inconsistent or P:QRS ratio not 1:1"
-#         report_lines.append(f"3. **P-waves**: Appear {pwave_check}. Visual inspection for uniform morphology is recommended.")
-        
-#         pr_check = "within normal limits (120-200 ms) and constant" if 'avg_pr' in locals() and 120 <= avg_pr <= 200 and 'std_pr' in locals() and std_pr < 20 else "outside normal limits, variable, or unassessable"
-#         report_lines.append(f"4. **PR Interval**: Appears {pr_check}.")
-        
-#         qrs_dur_check = "narrow (<120ms)" if not np.isnan(avg_qrs_duration) and avg_qrs_duration < 120 else "wide or unassessable"
-#         report_lines.append(f"5. **QRS Duration**: Appears {qrs_dur_check}.")
-        
-#         report_lines.append("\nThese findings support an interpretation of Normal Sinus Rhythm. Correlate with full clinical picture and other leads if available.")
-#         report_lines.append("="*30)
-
-#     except Exception as e:
-#         error_msg = f"Critical Error during processing Lead {lead_name} for NSR analysis: {str(e)}"
-#         print(error_msg)
-#         report_lines.append(error_msg)
-#         import traceback
-#         traceback.print_exc()
-#         try:
-#             cleaned_signal = nk.ecg_clean(ecg_lead_signal, sampling_rate=sampling_rate)
-#             fig_cleaned, ax_cleaned = plt.subplots(figsize=(12,4))
-#             ax_cleaned.plot(cleaned_signal)
-#             ax_cleaned.set_title(f"Cleaned ECG Signal (Processing Failed) - Lead {lead_name}")
-#             save_plot(fig_cleaned, "nsr_cleaned_ecg_fallback", lead_name_sanitized) # CHANGED FILENAME
-#         except Exception as e2:
-#             print(f"Error during fallback cleaning of Lead {lead_name}: {str(e2)}")
-
-#     report_filename = f"nsr_report_{lead_name_sanitized}.txt" # CHANGED FILENAME
-#     with open(report_filename, "w") as f:
-#         f.write("\n".join(report_lines))
-    
-#     print("\n\n" + "="*10 + " FINAL NSR REPORT " + "="*10) # CHANGED
-#     print("\n".join(report_lines))
-#     print(f"\nFull report saved to: {report_filename}")
-#     print(f"Associated plots saved in the current directory with prefix 'nsr_' and lead '{lead_name_sanitized}'.")
-
-# if __name__ == "__main__":
-#     main_nsr_analysis()
-
 import numpy as np
 import neurokit2 as nk
 import matplotlib.pyplot as plt
@@ -371,12 +8,12 @@ import pandas as pd
 # --- Helper function to save plots ---
 def save_plot(fig, filename_base, lead_name_sanitized, tight_layout=True):
     """Saves the given matplotlib figure and closes it."""
-    if not fig.get_size_inches()[0] > 1 or not fig.get_size_inches()[1] > 1:
+    if not fig.get_size_inches()[0] > 1 or not fig.get_size_inches()[1] > 1: # Ensure reasonable default size
         fig.set_size_inches(10, 6)
     if tight_layout:
         try:
-            fig.tight_layout(rect=[0, 0, 1, 0.96]) 
-        except: 
+            fig.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust rect to prevent title overlap
+        except Exception: # Catch errors if tight_layout fails for any reason
             pass
     filepath = f"{filename_base}_{lead_name_sanitized}.png"
     try:
@@ -389,7 +26,12 @@ def save_plot(fig, filename_base, lead_name_sanitized, tight_layout=True):
 def get_valid_indices(info_dict, key):
     """Safely gets valid (non-NaN, integer) indices from the info dictionary."""
     indices = info_dict.get(key, [])
-    return [int(p) for p in indices if pd.notna(p) and isinstance(p, (int, float, np.number)) and p < 1e9] 
+    if indices is None: # Handle cases where key exists but value is None
+        return []
+    # Ensure indices is iterable and filter
+    if not hasattr(indices, '__iter__'):
+        return []
+    return [int(p) for p in indices if pd.notna(p) and isinstance(p, (int, float, np.number)) and p < 1e12] # Increased upper bound for safety
 
 def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sampling_rate):
     results = {}
@@ -401,12 +43,15 @@ def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sa
         print("Error: Cleaned ECG signal is empty.")
         return results
 
-    # --- RR Intervals (already in hrv_time, but good to have raw for plotting) ---
+    # --- RR Intervals ---
     if len(rpeaks_indices) > 1:
         rr_samples = np.diff(rpeaks_indices)
         rr_ms = (rr_samples / sampling_rate) * 1000
-        results['RR_intervals_ms'] = rr_ms # For plotting or direct use
-        # Mean, min, max, std will be covered by HRV metrics
+        results['RR_intervals_ms'] = rr_ms
+        if len(rr_ms) > 0:
+            results['RR_mean_ms'] = np.mean(rr_ms)
+            results['RR_std_ms'] = np.std(rr_ms)
+
 
     # --- PP Intervals ---
     p_peaks = get_valid_indices(info_dict, 'ECG_P_Peaks')
@@ -420,22 +65,31 @@ def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sa
 
     # --- PR Intervals ---
     p_onsets = get_valid_indices(info_dict, 'ECG_P_Onsets')
-    qrs_onsets = get_valid_indices(info_dict, 'ECG_R_Onsets') 
+    # QRS onsets are often labeled as R_Onsets in NeuroKit's delineation
+    qrs_onsets_candidates = get_valid_indices(info_dict, 'ECG_R_Onsets')
+    if not qrs_onsets_candidates: # Fallback if R_Onsets are not there (older NeuroKit or different method)
+         q_peaks = get_valid_indices(info_dict, 'ECG_Q_Peaks')
+         if q_peaks:
+             qrs_onsets_candidates = sorted(list(set(q_peaks))) # Use Q_peaks as proxy for QRS onset
+
     pr_intervals_ms_list = []
-    if p_onsets and qrs_onsets:
-        p_onsets_sorted = sorted(list(set(p_onsets))) 
-        qrs_onsets_sorted = sorted(list(set(qrs_onsets)))
-        
+    if p_onsets and qrs_onsets_candidates:
+        p_onsets_sorted = sorted(list(set(p_onsets)))
+        qrs_onsets_sorted = sorted(list(set(qrs_onsets_candidates)))
+
+        # More robust pairing: for each QRS onset, find the closest preceding P onset
         for q_on in qrs_onsets_sorted:
-            relevant_p_onset = None
-            temp_p_onsets_before_q = [p for p in p_onsets_sorted if p < q_on]
-            if temp_p_onsets_before_q:
-                relevant_p_onset = max(temp_p_onsets_before_q)
-            
-            if relevant_p_onset is not None:
-                pr_duration_samples = q_on - relevant_p_onset
+            relevant_p_onsets_before_q = [p_on for p_on in p_onsets_sorted if p_on < q_on]
+            if relevant_p_onsets_before_q:
+                # Choose the P_Onset closest to this QRS_Onset, but not *too* far.
+                # This assumes P wave is reasonably close to QRS.
+                closest_p_onset = max(relevant_p_onsets_before_q)
+                # Additional check: ensure this p_onset hasn't been "claimed" by a previous QRS more appropriately
+                # For simplicity here, we'll just use the max preceding one. More complex logic could check for R-P intervals.
+
+                pr_duration_samples = q_on - closest_p_onset
                 pr_duration_ms = (pr_duration_samples / sampling_rate) * 1000
-                if 80 <= pr_duration_ms <= 350: 
+                if 80 <= pr_duration_ms <= 350:  # Physiological range for PR
                     pr_intervals_ms_list.append(pr_duration_ms)
         if pr_intervals_ms_list:
             results['PR_intervals_ms'] = np.array(pr_intervals_ms_list)
@@ -443,26 +97,34 @@ def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sa
             results['PR_std_ms'] = np.std(pr_intervals_ms_list)
 
     # --- QRS Durations ---
-    r_onsets = get_valid_indices(info_dict, 'ECG_R_Onsets')
-    r_offsets = get_valid_indices(info_dict, 'ECG_R_Offsets') 
+    r_onsets = get_valid_indices(info_dict, 'ECG_R_Onsets') # QRS Onset
+    s_offsets_or_r_offsets = get_valid_indices(info_dict, 'ECG_S_Offsets') # S_Offsets are more common for QRS end
+    if not s_offsets_or_r_offsets:
+        s_offsets_or_r_offsets = get_valid_indices(info_dict, 'ECG_R_Offsets') # Fallback to R_Offsets
+
     qrs_durations_ms_list = []
-    if r_onsets and r_offsets:
+    if r_onsets and s_offsets_or_r_offsets:
         r_onsets_sorted = sorted(list(set(r_onsets)))
-        r_offsets_sorted = sorted(list(set(r_offsets)))
+        qrs_offsets_sorted = sorted(list(set(s_offsets_or_r_offsets)))
         
-        used_offsets_indices = [False] * len(r_offsets_sorted)
-        for r_on in r_onsets_sorted:
-            best_r_off_val = -1; min_duration_diff = float('inf'); best_offset_idx = -1
-            for i, r_off_val in enumerate(r_offsets_sorted):
-                if not used_offsets_indices[i] and r_off_val > r_on:
-                    duration_samples = r_off_val - r_on
+        used_offsets_indices = [False] * len(qrs_offsets_sorted)
+        for r_on_val in r_onsets_sorted:
+            best_qrs_off_val = -1
+            min_duration_diff = float('inf')
+            best_offset_idx = -1
+            for i, r_off_val in enumerate(qrs_offsets_sorted):
+                if not used_offsets_indices[i] and r_off_val > r_on_val:
+                    duration_samples = r_off_val - r_on_val
                     duration_ms = (duration_samples / sampling_rate) * 1000
-                    if 40 <= duration_ms <= 200: 
+                    if 40 <= duration_ms <= 200: # Physiological QRS duration
+                        # Prefer the closest offset that forms a valid QRS
                         if duration_samples < min_duration_diff:
-                             min_duration_diff = duration_samples; best_r_off_val = r_off_val; best_offset_idx = i
-            if best_r_off_val != -1 and best_offset_idx != -1:
-                qrs_durations_ms_list.append((best_r_off_val - r_on) / sampling_rate * 1000)
-                used_offsets_indices[best_offset_idx] = True
+                             min_duration_diff = duration_samples
+                             best_qrs_off_val = r_off_val
+                             best_offset_idx = i
+            if best_qrs_off_val != -1 and best_offset_idx != -1:
+                qrs_durations_ms_list.append((best_qrs_off_val - r_on_val) / sampling_rate * 1000)
+                used_offsets_indices[best_offset_idx] = True # Mark as used
         if qrs_durations_ms_list:
             results['QRS_durations_ms'] = np.array(qrs_durations_ms_list)
             results['QRS_mean_ms'] = np.mean(qrs_durations_ms_list)
@@ -471,78 +133,343 @@ def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sa
     # --- QT Intervals and QTc ---
     t_offsets = get_valid_indices(info_dict, 'ECG_T_Offsets')
     qt_intervals_ms_list = []; qtc_intervals_list = []
-    if qrs_onsets and t_offsets and 'RR_intervals_ms' in results and len(results.get('RR_intervals_ms', [])) > 0:
-        qrs_onsets_sorted = sorted(list(set(qrs_onsets)))
+    # Use QRS onsets (r_onsets from above)
+    if r_onsets and t_offsets and 'RR_intervals_ms' in results and len(results.get('RR_intervals_ms', [])) > 0:
+        qrs_onsets_sorted = sorted(list(set(r_onsets))) # Already sorted if taken from above
         t_offsets_sorted = sorted(list(set(t_offsets)))
-        rr_intervals_sec = results['RR_intervals_ms'] / 1000.0 
-        beat_idx = 0; used_t_offsets = [False] * len(t_offsets_sorted)
-        for r_peak_ref in rpeaks_indices: 
-            if beat_idx >= len(rr_intervals_sec): break
-            current_q_on_candidates = [qon for qon in qrs_onsets_sorted if qon <= r_peak_ref]
-            if not current_q_on_candidates: continue
-            current_q_on = max(current_q_on_candidates)
-            best_t_off_val = -1; min_qt_duration = float('inf'); best_t_off_idx = -1
+        rr_intervals_sec = results['RR_intervals_ms'] / 1000.0
+        
+        # Ensure RR intervals align with QRS onsets for QTc calculation
+        # We need an RR interval for *each* QT interval. The RR preceding the QRS is typically used.
+        
+        beat_idx = 0 # Index for rr_intervals_sec
+        used_t_offsets = [False] * len(t_offsets_sorted)
+
+        for q_on_idx, q_on_val in enumerate(qrs_onsets_sorted):
+            # Find corresponding T_Offset
+            best_t_off_val = -1
+            min_qt_duration = float('inf')
+            best_t_off_idx = -1
             for i, t_off_val in enumerate(t_offsets_sorted):
-                if not used_t_offsets[i] and t_off_val > current_q_on: 
-                    qt_duration_samples = t_off_val - current_q_on
+                if not used_t_offsets[i] and t_off_val > q_on_val:
+                    qt_duration_samples = t_off_val - q_on_val
                     qt_duration_ms_candidate = (qt_duration_samples / sampling_rate) * 1000
-                    if 200 <= qt_duration_ms_candidate <= 700:
-                        if qt_duration_samples < min_qt_duration:
-                            min_qt_duration = qt_duration_samples; best_t_off_val = t_off_val; best_t_off_idx = i
+                    if 200 <= qt_duration_ms_candidate <= 700: # Physiological QT
+                        if qt_duration_samples < min_qt_duration: # Find closest T_offset after QRS_onset
+                            min_qt_duration = qt_duration_samples
+                            best_t_off_val = t_off_val
+                            best_t_off_idx = i
+            
             if best_t_off_val != -1 and best_t_off_idx != -1:
-                qt_duration_ms = (best_t_off_val - current_q_on) / sampling_rate * 1000
-                qt_intervals_ms_list.append(qt_duration_ms); used_t_offsets[best_t_off_idx] = True
-                rr_sec_for_this_beat = rr_intervals_sec[beat_idx]
-                if rr_sec_for_this_beat > 0.1:
-                    qtc = qt_duration_ms / np.sqrt(rr_sec_for_this_beat)
+                qt_duration_ms = (best_t_off_val - q_on_val) / sampling_rate * 1000
+                qt_intervals_ms_list.append(qt_duration_ms)
+                used_t_offsets[best_t_off_idx] = True
+
+                # QTc calculation: Use RR interval ending at the R-peak associated with this QRS
+                # Find the R-peak closest to this q_on_val
+                r_peak_for_this_qrs = -1
+                if rpeaks_indices:
+                    r_peaks_after_qon = [r for r in rpeaks_indices if r >= q_on_val]
+                    if r_peaks_after_qon:
+                        r_peak_for_this_qrs = min(r_peaks_after_qon)
+                
+                rr_sec_for_this_beat = np.nan
+                if r_peak_for_this_qrs != -1:
+                    try:
+                        # Find index of this R-peak in the original rpeaks_indices list
+                        r_peak_list_idx = rpeaks_indices.index(r_peak_for_this_qrs)
+                        if r_peak_list_idx > 0: # Need a preceding R-peak to have an RR interval
+                           rr_sec_for_this_beat = (rpeaks_indices[r_peak_list_idx] - rpeaks_indices[r_peak_list_idx-1]) / sampling_rate
+                        elif q_on_idx < len(rr_intervals_sec): # Fallback if direct R-peak matching is hard
+                           rr_sec_for_this_beat = rr_intervals_sec[q_on_idx]
+
+
+                    except (ValueError, IndexError):
+                        # If r_peak_for_this_qrs not in list or out of bounds for rr_intervals_sec
+                        # Try to use beat_idx as a fallback, but this is less robust
+                        if beat_idx < len(rr_intervals_sec):
+                            rr_sec_for_this_beat = rr_intervals_sec[beat_idx]
+
+
+                if pd.notna(rr_sec_for_this_beat) and rr_sec_for_this_beat > 0.1: # Min sensible RR for QTc
+                    qtc = qt_duration_ms / np.sqrt(rr_sec_for_this_beat) # Bazett's
                     qtc_intervals_list.append(qtc)
-            beat_idx +=1
+            
+            beat_idx += 1 # Increment for fallback RR interval indexing
+
         if qt_intervals_ms_list:
             results['QT_intervals_ms'] = np.array(qt_intervals_ms_list); results['QT_mean_ms'] = np.mean(qt_intervals_ms_list); results['QT_std_ms'] = np.std(qt_intervals_ms_list)
         if qtc_intervals_list:
             results['QTc_intervals'] = np.array(qtc_intervals_list); results['QTc_mean'] = np.mean(qtc_intervals_list); results['QTc_std'] = np.std(qtc_intervals_list)
 
+
     # --- Amplitudes ---
     peak_keys_amplitudes = {'P':'ECG_P_Peaks','Q':'ECG_Q_Peaks','R':'ECG_R_Peaks','S':'ECG_S_Peaks','T':'ECG_T_Peaks'}
-    results['Amplitudes_mV'] = {} 
+    results['Amplitudes_mV'] = {}
     for wave_name, peak_key in peak_keys_amplitudes.items():
         peaks = get_valid_indices(info_dict, peak_key)
-        if peaks and len(peaks) > 0 and max(peaks) < len(cleaned_ecg): 
+        if peaks and len(peaks) > 0 and max(peaks) < len(cleaned_ecg):
             amplitudes = cleaned_ecg[peaks]
             if len(amplitudes) > 0:
-                results['Amplitudes_mV'][f'{wave_name}_peak_amps'] = amplitudes 
+                results['Amplitudes_mV'][f'{wave_name}_peak_amps'] = amplitudes
                 results['Amplitudes_mV'][f'{wave_name}_peak_amp_mean'] = np.mean(amplitudes)
                 results['Amplitudes_mV'][f'{wave_name}_peak_amp_std'] = np.std(amplitudes)
 
     # --- ST Segment Deviation ---
     st_deviations_mv = []
-    p_offsets = get_valid_indices(info_dict, 'ECG_P_Offsets')
-    if qrs_onsets and p_offsets and r_offsets: 
-        j_points = sorted(list(set(r_offsets))); qrs_onsets_sorted = sorted(list(set(qrs_onsets)))
-        p_onsets_sorted = sorted(list(set(p_onsets))) 
-        for j_point_idx in j_points:
-            current_q_on = [qon for qon in qrs_onsets_sorted if qon < j_point_idx]
-            if not current_q_on: continue
-            current_q_on = max(current_q_on)
-            baseline_start_options = [pon for pon in p_onsets_sorted if pon < current_q_on]
-            if not baseline_start_options: continue
-            baseline_start = max(baseline_start_options)
-            if baseline_start < current_q_on and (current_q_on - baseline_start) > int(0.04 * sampling_rate): 
-                pr_segment = cleaned_ecg[baseline_start:current_q_on]
-                if len(pr_segment) > 0:
-                    isoelectric_level = np.median(pr_segment)
-                    st_measurement_point = j_point_idx + int(0.06 * sampling_rate) 
-                    if st_measurement_point < len(cleaned_ecg):
-                        st_deviations_mv.append(cleaned_ecg[st_measurement_point] - isoelectric_level)
+    # QRS onsets (r_onsets) and QRS offsets (s_offsets_or_r_offsets) from QRS duration calculation
+    if r_onsets and s_offsets_or_r_offsets and p_onsets:
+        j_points = sorted(list(set(s_offsets_or_r_offsets))) # J-point is typically end of QRS
+        qrs_onsets_sorted = sorted(list(set(r_onsets)))
+        p_onsets_sorted = sorted(list(set(p_onsets)))
+
+        for j_point_val in j_points:
+            # Find the QRS onset that corresponds to this J-point
+            current_qrs_onsets_before_j = [qon for qon in qrs_onsets_sorted if qon < j_point_val]
+            if not current_qrs_onsets_before_j: continue
+            current_q_on = max(current_qrs_onsets_before_j)
+
+            # Find the P onset for the PR segment baseline
+            baseline_p_onsets_before_qrs = [pon for pon in p_onsets_sorted if pon < current_q_on]
+            if not baseline_p_onsets_before_qrs: continue
+            baseline_start_p_onset = max(baseline_p_onsets_before_qrs)
+
+            # Ensure PR segment is distinct and before QRS onset
+            if baseline_start_p_onset < current_q_on and (current_q_on - baseline_start_p_onset) > int(0.04 * sampling_rate):
+                # Make sure PR segment doesn't overlap with a previous T-wave offset or P-wave offset
+                # For simplicity, we use P-onset to QRS-onset as PR segment for baseline
+                pr_segment_for_baseline = cleaned_ecg[baseline_start_p_onset:current_q_on]
+                if len(pr_segment_for_baseline) > 0:
+                    isoelectric_level = np.median(pr_segment_for_baseline) # Median is robust to P-wave itself
+
+                    st_measurement_point_sample = j_point_val + int(0.06 * sampling_rate) # ST measurement at J+60ms
+                    if st_measurement_point_sample < len(cleaned_ecg):
+                        st_deviations_mv.append(cleaned_ecg[st_measurement_point_sample] - isoelectric_level)
         if st_deviations_mv:
             results['ST_deviations_mV'] = np.array(st_deviations_mv)
             results['ST_mean_deviation_mV'] = np.mean(st_deviations_mv)
             results['ST_std_deviation_mV'] = np.std(st_deviations_mv)
     return results
 
+# --- New function for Delineation Plots ---
+def generate_delineation_plots(signals_df, info_dict, rpeaks_indices, sampling_rate, plot_prefix, lead_name_sanitized, report_lines):
+    report_lines.append("\n### J. Detailed Waveform Delineation Plots (Zoomed) ###")
+    if 'ECG_Clean' not in signals_df.columns:
+        report_lines.append("- Skipping delineation plots: 'ECG_Clean' not found in signals DataFrame.")
+        return
+
+    ecg_cleaned = signals_df['ECG_Clean'].values
+    if len(ecg_cleaned) == 0:
+        report_lines.append("- Skipping delineation plots: Cleaned ECG signal is empty.")
+        return
+
+    N_CYCLES_FOR_ZOOM = 5  # Number of cardiac cycles to try to display in zoomed plots
+    DEFAULT_ZOOM_SECONDS = 10
+
+    # Determine zoom window
+    if len(rpeaks_indices) >= N_CYCLES_FOR_ZOOM:
+        end_rpeak_sample = rpeaks_indices[N_CYCLES_FOR_ZOOM - 1]
+        max_sample_for_zoom = min(len(ecg_cleaned), end_rpeak_sample + int(sampling_rate * 1.0)) # 1s padding
+    elif len(rpeaks_indices) > 0:
+        end_rpeak_sample = rpeaks_indices[-1]
+        max_sample_for_zoom = min(len(ecg_cleaned), end_rpeak_sample + int(sampling_rate * 1.0))
+    else:
+        max_sample_for_zoom = min(len(ecg_cleaned), int(DEFAULT_ZOOM_SECONDS * sampling_rate))
+
+    if max_sample_for_zoom <= 0: # If signal is too short or no R-peaks
+        max_sample_for_zoom = len(ecg_cleaned)
+
+    ecg_zoom_segment = ecg_cleaned[:max_sample_for_zoom]
+    if len(ecg_zoom_segment) == 0:
+        report_lines.append("- Skipping delineation plots: Zoom segment is empty.")
+        return
+
+    plot_time_axis = np.arange(len(ecg_zoom_segment)) / sampling_rate
+
+    # Helper to get events within the zoom window for plotting
+    def get_events_in_zoom(all_event_indices):
+        return [idx for idx in all_event_indices if idx < max_sample_for_zoom]
+        
+    # Custom function to plot events on a specific axis
+    def plot_events_on_axis(ax, events, signal, color='red'):
+        # First plot the signal on the axis
+        if signal is not None:
+            time = np.arange(len(signal)) / sampling_rate
+            ax.plot(time, signal)
+        
+        # Then manually add vertical lines for events
+        for event in events:
+            if event < len(ecg_zoom_segment):
+                event_time = event / sampling_rate
+                ax.axvline(x=event_time, color=color, linestyle='--')
+
+    # Plot 1: Zoomed R-peaks
+    rpeaks_zoomed = get_events_in_zoom(rpeaks_indices)
+    if rpeaks_zoomed:
+        fig1, ax1 = plt.subplots(figsize=(12, 4))
+        # Use our custom function to plot events
+        plot_events_on_axis(ax1, rpeaks_zoomed, ecg_zoom_segment, color='red')
+        ax1.set_title(f"{lead_name_sanitized} - Zoomed R-peaks")
+        ax1.set_xlabel("Time (s)")
+        save_plot(fig1, f"{plot_prefix}_delineate_zoomed_R", lead_name_sanitized)
+        report_lines.append(f"- Zoomed R-peaks plot saved ({len(rpeaks_zoomed)} peaks shown).")
+    else:
+        report_lines.append("- Skipping Zoomed R-peaks plot: No R-peaks in zoom window.")
+
+
+    # Plot 2: Key Wave Peaks (P, Q, R, S, T) Zoomed
+    p_peaks_all = get_valid_indices(info_dict, 'ECG_P_Peaks')
+    q_peaks_all = get_valid_indices(info_dict, 'ECG_Q_Peaks')
+    s_peaks_all = get_valid_indices(info_dict, 'ECG_S_Peaks')
+    t_peaks_all = get_valid_indices(info_dict, 'ECG_T_Peaks')
+
+    events_for_all_peaks_plot = []
+    event_labels_all_peaks = []
+    event_colors_all_peaks = []
+
+    collections = [
+        (p_peaks_all, "P Peaks", "blue"), (q_peaks_all, "Q Peaks", "green"),
+        (rpeaks_indices, "R Peaks", "red"), (s_peaks_all, "S Peaks", "purple"),
+        (t_peaks_all, "T Peaks", "orange")
+    ]
+    for ev_all, label, color in collections:
+        ev_zoomed = get_events_in_zoom(ev_all)
+        if ev_zoomed:
+            events_for_all_peaks_plot.append(ev_zoomed)
+            event_labels_all_peaks.append(label)
+            event_colors_all_peaks.append(color)
+
+    if events_for_all_peaks_plot:
+        fig2, ax2 = plt.subplots(figsize=(12, 4))
+        # First plot the signal
+        ax2.plot(plot_time_axis, ecg_zoom_segment)
+        # Then add event markers for each type of peak
+        for i, events in enumerate(events_for_all_peaks_plot):
+            color = event_colors_all_peaks[i] if i < len(event_colors_all_peaks) else 'red'
+            # Manually plot events
+            for event in events:
+                if event < len(ecg_zoom_segment):
+                    event_time = event / sampling_rate
+                    ax2.axvline(x=event_time, color=color, linestyle='--')
+            
+        # Create manual legend for clarity
+        handles = [plt.Line2D([0], [0], marker='|', color=c, linestyle='None', markersize=10, label=l)
+                   for l, c in zip(event_labels_all_peaks, event_colors_all_peaks)]
+        ax2.legend(handles=handles, loc='upper right')
+        ax2.set_title(f"{lead_name_sanitized} - Zoomed P,Q,R,S,T Peaks")
+        ax2.set_xlabel("Time (s)")
+        save_plot(fig2, f"{plot_prefix}_delineate_zoomed_all_wave_peaks", lead_name_sanitized)
+        report_lines.append("- Zoomed All Wave Peaks plot saved.")
+    else:
+        report_lines.append("- Skipping All Wave Peaks plot: No relevant peaks found in zoom window.")
+
+
+    # Plot 3: P-Wave Boundaries Zoomed
+    p_onsets_all = get_valid_indices(info_dict, 'ECG_P_Onsets')
+    p_offsets_all = get_valid_indices(info_dict, 'ECG_P_Offsets')
+    p_onsets_zoomed = get_events_in_zoom(p_onsets_all)
+    p_offsets_zoomed = get_events_in_zoom(p_offsets_all)
+    if p_onsets_zoomed or p_offsets_zoomed:
+        fig3, ax3 = plt.subplots(figsize=(12, 4))
+        # First plot the signal
+        ax3.plot(plot_time_axis, ecg_zoom_segment)
+        # Then add P-onsets and P-offsets markers
+        p_boundaries_events = []
+        p_boundaries_labels = []
+        p_boundaries_colors = []
+        if p_onsets_zoomed: p_boundaries_events.append(p_onsets_zoomed); p_boundaries_labels.append("P Onsets"); p_boundaries_colors.append("cyan")
+        if p_offsets_zoomed: p_boundaries_events.append(p_offsets_zoomed); p_boundaries_labels.append("P Offsets"); p_boundaries_colors.append("magenta")
+        if p_boundaries_events:
+            for i, events in enumerate(p_boundaries_events):
+                color = p_boundaries_colors[i] if i < len(p_boundaries_colors) else 'blue'
+                # Manually plot events
+                for event in events:
+                    if event < len(ecg_zoom_segment):
+                        event_time = event / sampling_rate
+                        ax3.axvline(x=event_time, color=color, linestyle='--')
+                
+            handles = [plt.Line2D([0], [0], marker='|', color=c, linestyle='None', markersize=10, label=l)
+                       for l, c in zip(p_boundaries_labels, p_boundaries_colors)]
+            ax3.legend(handles=handles, loc='upper right')
+            ax3.set_title(f"{lead_name_sanitized} - Zoomed P-Wave Boundaries")
+            ax3.set_xlabel("Time (s)")
+            save_plot(fig3, f"{plot_prefix}_delineate_zoomed_P_boundaries", lead_name_sanitized)
+            report_lines.append("- Zoomed P-Wave Boundaries plot saved.")
+    else:
+        report_lines.append("- Skipping P-Wave Boundaries plot: No P-onsets/offsets in zoom window.")
+
+    # Plot 4: T-Wave Boundaries Zoomed
+    t_onsets_all = get_valid_indices(info_dict, 'ECG_T_Onsets')
+    t_offsets_all = get_valid_indices(info_dict, 'ECG_T_Offsets')
+    t_onsets_zoomed = get_events_in_zoom(t_onsets_all)
+    t_offsets_zoomed = get_events_in_zoom(t_offsets_all)
+    if t_onsets_zoomed or t_offsets_zoomed:
+        fig4, ax4 = plt.subplots(figsize=(12, 4))
+        # First plot the signal
+        ax4.plot(plot_time_axis, ecg_zoom_segment)
+        # Then add T-onsets and T-offsets markers
+        t_boundaries_events = []
+        t_boundaries_labels = []
+        t_boundaries_colors = []
+        if t_onsets_zoomed: t_boundaries_events.append(t_onsets_zoomed); t_boundaries_labels.append("T Onsets"); t_boundaries_colors.append("lime")
+        if t_offsets_zoomed: t_boundaries_events.append(t_offsets_zoomed); t_boundaries_labels.append("T Offsets"); t_boundaries_colors.append("gold")
+        if t_boundaries_events:
+            for i, events in enumerate(t_boundaries_events):
+                color = t_boundaries_colors[i] if i < len(t_boundaries_colors) else 'orange'
+                # Manually plot events
+                for event in events:
+                    if event < len(ecg_zoom_segment):
+                        event_time = event / sampling_rate
+                        ax4.axvline(x=event_time, color=color, linestyle='--')
+                
+            handles = [plt.Line2D([0], [0], marker='|', color=c, linestyle='None', markersize=10, label=l)
+                       for l, c in zip(t_boundaries_labels, t_boundaries_colors)]
+            ax4.legend(handles=handles, loc='upper right')
+            ax4.set_title(f"{lead_name_sanitized} - Zoomed T-Wave Boundaries")
+            ax4.set_xlabel("Time (s)")
+            save_plot(fig4, f"{plot_prefix}_delineate_zoomed_T_boundaries", lead_name_sanitized)
+            report_lines.append("- Zoomed T-Wave Boundaries plot saved.")
+    else:
+        report_lines.append("- Skipping T-Wave Boundaries plot: No T-onsets/offsets in zoom window.")
+
+    # Plot 5: QRS (R-Wave) Boundaries Zoomed
+    r_onsets_all = get_valid_indices(info_dict, 'ECG_R_Onsets')
+    r_offsets_all = get_valid_indices(info_dict, 'ECG_R_Offsets')
+    r_onsets_zoomed = get_events_in_zoom(r_onsets_all)
+    r_offsets_zoomed = get_events_in_zoom(r_offsets_all)
+    if r_onsets_zoomed or r_offsets_zoomed:
+        fig5, ax5 = plt.subplots(figsize=(12, 4))
+        # First plot the signal
+        ax5.plot(plot_time_axis, ecg_zoom_segment)
+        # Then add QRS boundaries markers
+        r_boundaries_events = []
+        r_boundaries_labels = []
+        r_boundaries_colors = []
+        if r_onsets_zoomed: r_boundaries_events.append(r_onsets_zoomed); r_boundaries_labels.append("R Onsets (QRS Start)"); r_boundaries_colors.append("darkgreen")
+        if r_offsets_zoomed: r_boundaries_events.append(r_offsets_zoomed); r_boundaries_labels.append("R Offsets (QRS End)"); r_boundaries_colors.append("maroon")
+        if r_boundaries_events:
+            for i, events in enumerate(r_boundaries_events):
+                color = r_boundaries_colors[i] if i < len(r_boundaries_colors) else 'green'
+                # Manually plot events
+                for event in events:
+                    if event < len(ecg_zoom_segment):
+                        event_time = event / sampling_rate
+                        ax5.axvline(x=event_time, color=color, linestyle='--')
+                
+            handles = [plt.Line2D([0], [0], marker='|', color=c, linestyle='None', markersize=10, label=l)
+                       for l, c in zip(r_boundaries_labels, r_boundaries_colors)]
+            ax5.legend(handles=handles, loc='upper right')
+            ax5.set_title(f"{lead_name_sanitized} - Zoomed QRS (R-Wave) Boundaries")
+            ax5.set_xlabel("Time (s)")
+            save_plot(fig5, f"{plot_prefix}_delineate_zoomed_R_boundaries", lead_name_sanitized)
+            report_lines.append("- Zoomed QRS (R-Wave) Boundaries plot saved.")
+    else:
+        report_lines.append("- Skipping QRS Boundaries plot: No R-onsets/offsets in zoom window.")
+
+
 # --- Main Analysis Function ---
 def main_ultra_comprehensive_analysis():
-    npy_file_path = "/home/tony/neurokit/validation/validation01/validation01.npy"
+    npy_file_path = "/home/tony/neurokit/validation/validation01/validation01.npy" # Replace with your .npy file path
     analysis_type = "NSR"; sampling_rate = 100; preferred_lead_idx = 1; fallback_lead_idx = 0
     report_lines = []
     try:
@@ -550,14 +477,22 @@ def main_ultra_comprehensive_analysis():
         report_lines.append(f"Successfully loaded ECG data from: {npy_file_path}")
     except Exception as e:
         report_lines.append(f"File load error: {str(e)} - Using dummy data."); print(report_lines[-1])
-        ecg_signal_all_leads = np.array([nk.ecg_simulate(duration=10, sampling_rate=100, heart_rate=75, random_state=42)]*12)
+        ecg_signal_all_leads = np.array([nk.ecg_simulate(duration=30, sampling_rate=100, heart_rate=75, random_state=42)]*12) # Longer dummy data for HRV
 
     report_lines.append(f"ECG Signal Shape: {ecg_signal_all_leads.shape}")
-    num_all_leads = ecg_signal_all_leads.shape[0]; STANDARD_12_LEAD_NAMES = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+    num_all_leads = ecg_signal_all_leads.shape[0] if ecg_signal_all_leads.ndim > 1 else 1
+    if ecg_signal_all_leads.ndim == 1: # Handle single lead in .npy
+        ecg_signal_all_leads = ecg_signal_all_leads.reshape(1, -1)
+        num_all_leads = 1
+        
+    STANDARD_12_LEAD_NAMES = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+    
     lead_to_analyze_idx = preferred_lead_idx if num_all_leads > preferred_lead_idx else fallback_lead_idx
-    if num_all_leads == 0 or lead_to_analyze_idx >= num_all_leads : lead_to_analyze_idx = 0 
+    if num_all_leads == 0 or lead_to_analyze_idx >= num_all_leads : lead_to_analyze_idx = 0
     if num_all_leads == 0: report_lines.append("Error: No leads found."); print("\n".join(report_lines)); exit(1)
-    lead_name = f"Lead {STANDARD_12_LEAD_NAMES[lead_to_analyze_idx]} (index {lead_to_analyze_idx})" if num_all_leads == 12 else f"Lead {lead_to_analyze_idx + 1} (index {lead_to_analyze_idx})"
+    
+    lead_name = f"Lead {STANDARD_12_LEAD_NAMES[lead_to_analyze_idx]}" if num_all_leads >= lead_to_analyze_idx + 1 and lead_to_analyze_idx < len(STANDARD_12_LEAD_NAMES) else f"Lead {lead_to_analyze_idx + 1}"
+    lead_name += f" (index {lead_to_analyze_idx})"
     ecg_lead_signal = ecg_signal_all_leads[lead_to_analyze_idx, :]
     lead_name_sanitized = lead_name.replace(" ", "_").replace("(", "").replace(")", "").replace("+","")
 
@@ -566,184 +501,309 @@ def main_ultra_comprehensive_analysis():
 
     try:
         print(f"\nProcessing {lead_name} for comprehensive analysis...")
+        # Use a robust peak detection method for ecg_process
         signals, info = nk.ecg_process(ecg_lead_signal, sampling_rate=sampling_rate, method='neurokit')
         rpeaks_indices = get_valid_indices(info, 'ECG_R_Peaks')
         if not rpeaks_indices: raise ValueError("No R-peaks detected in the selected lead.")
 
-        fig = nk.ecg_plot(signals, info); 
-        if not isinstance(fig, plt.Figure): fig = plt.gcf()
-        fig.suptitle(f"Processed ECG for {lead_name} with Delineations", y=1.02)
-        save_plot(fig, f"{analysis_type.lower()}_0_processed_ecg", lead_name_sanitized)
+        fig0 = nk.ecg_plot(signals, info); # Remove sampling_rate parameter
+        if not isinstance(fig0, plt.Figure) and plt.get_fignums(): fig0 = plt.gcf() # Get current figure if ecg_plot doesn't return one directly
+        else: fig0, ax_temp = plt.subplots() # Create one if none
+        
+        if isinstance(fig0, plt.Figure): # Ensure fig0 is a Figure object
+             fig0.suptitle(f"Processed ECG Overview - {lead_name}", y=1.02) # Adjusted y
+             save_plot(fig0, f"{analysis_type.lower()}_0_processed_ecg_overview", lead_name_sanitized)
+        else:
+            report_lines.append("- Failed to generate or save overview ECG plot.")
+
 
         detailed_params = calculate_intervals_and_amplitudes(signals, info, rpeaks_indices, sampling_rate)
 
         report_lines.append("\n### A. Fiducial Points Detection ###")
-        fiducial_keys = ['ECG_P_Onsets','ECG_P_Peaks','ECG_P_Offsets','ECG_Q_Peaks','ECG_R_Onsets','ECG_R_Peaks','ECG_R_Offsets','ECG_S_Peaks','ECG_T_Onsets','ECG_T_Peaks','ECG_T_Offsets']
+        fiducial_keys = ['ECG_P_Onsets','ECG_P_Peaks','ECG_P_Offsets',
+                         'ECG_Q_Peaks', # Q-peaks
+                         'ECG_R_Onsets','ECG_R_Peaks','ECG_R_Offsets', # R related
+                         'ECG_S_Peaks', # S-peaks
+                         'ECG_T_Onsets','ECG_T_Peaks','ECG_T_Offsets'] # T related
         for key in fiducial_keys: report_lines.append(f"- Number of {key.replace('ECG_', '')} detected: {len(get_valid_indices(info, key))}")
 
         report_lines.append("\n### B. Intervals and Durations ###")
-        interval_report_keys = {'RR Mean (ms)':('RR_mean_ms','RR_std_ms','RR_intervals_ms'),'PP Mean (ms)':('PP_mean_ms','PP_std_ms','PP_intervals_ms'),
-                                'PR Mean (ms)':('PR_mean_ms','PR_std_ms','PR_intervals_ms'),'QRS Mean (ms)':('QRS_mean_ms','QRS_std_ms','QRS_durations_ms'),
-                                'QT Mean (ms)':('QT_mean_ms','QT_std_ms','QT_intervals_ms'),'QTc Mean':('QTc_mean','QTc_std','QTc_intervals')}
+        interval_report_keys = {
+            'RR Mean (ms)':('RR_mean_ms','RR_std_ms','RR_intervals_ms'),
+            'PP Mean (ms)':('PP_mean_ms','PP_std_ms','PP_intervals_ms'),
+            'PR Mean (ms)':('PR_mean_ms','PR_std_ms','PR_intervals_ms'),
+            'QRS Mean (ms)':('QRS_mean_ms','QRS_std_ms','QRS_durations_ms'),
+            'QT Mean (ms)':('QT_mean_ms','QT_std_ms','QT_intervals_ms'),
+            'QTc Mean (Bazett)':('QTc_mean','QTc_std','QTc_intervals') # Specify Bazett if used
+        }
         for disp_key, (mean_k, std_k, list_k) in interval_report_keys.items():
-            if mean_k in detailed_params and list_k in detailed_params and len(detailed_params[list_k]) > 0:
+            mean_val = detailed_params.get(mean_k)
+            std_val = detailed_params.get(std_k)
+            list_val = detailed_params.get(list_k, [])
+            if mean_val is not None and len(list_val) > 0:
                 unit = "ms" if "ms" in disp_key else ""
-                report_lines.append(f"- {disp_key}: {detailed_params[mean_k]:.2f}{unit} (StdDev: {detailed_params.get(std_k,np.nan):.2f}{unit}, N: {len(detailed_params[list_k])})")
+                std_dev_str = f"{std_val:.2f}{unit}" if std_val is not None else "N/A"
+                report_lines.append(f"- {disp_key}: {mean_val:.2f}{unit} (StdDev: {std_dev_str}, N: {len(list_val)})")
             else: report_lines.append(f"- {disp_key}: Not reliably calculated or no valid intervals found.")
         
         report_lines.append("\n### C. Amplitudes (from Cleaned ECG) ###")
         if 'Amplitudes_mV' in detailed_params and detailed_params['Amplitudes_mV']:
-            for amp_key in detailed_params['Amplitudes_mV']:
-                if '_amp_mean' in amp_key: 
-                    wave = amp_key.split('_')[0]
-                    report_lines.append(f"- {wave} Peak Amp: Mean={detailed_params['Amplitudes_mV'][amp_key]:.3f}, Std={detailed_params['Amplitudes_mV'].get(f'{wave}_peak_amp_std',np.nan):.3f} (N={len(detailed_params['Amplitudes_mV'].get(f'{wave}_peak_amps',[]))}) units")
+            for amp_key_mean in detailed_params['Amplitudes_mV']:
+                if '_amp_mean' in amp_key_mean:
+                    wave = amp_key_mean.split('_')[0]
+                    mean_amp = detailed_params['Amplitudes_mV'][amp_key_mean]
+                    std_amp_key = f'{wave}_peak_amp_std'
+                    std_amp = detailed_params['Amplitudes_mV'].get(std_amp_key, np.nan)
+                    amp_values_key = f'{wave}_peak_amps'
+                    num_amps = len(detailed_params['Amplitudes_mV'].get(amp_values_key,[]))
+                    std_amp_str = f"{std_amp:.3f}" if pd.notna(std_amp) else "N/A"
+                    report_lines.append(f"- {wave} Peak Amp: Mean={mean_amp:.3f}, Std={std_amp_str} (N={num_amps}) arbitrary units")
         else: report_lines.append("- Waveform amplitudes not calculated.")
 
         report_lines.append("\n### D. ST-Segment Analysis (Basic) ###")
-        if 'ST_mean_deviation_mV' in detailed_params and 'ST_deviations_mV' in detailed_params and len(detailed_params['ST_deviations_mV']) > 0:
-            report_lines.append(f"- ST-Segment Mean Deviation (J+60ms from PR baseline): {detailed_params['ST_mean_deviation_mV']:.3f} units")
-            report_lines.append(f"- ST-Segment Std Deviation: {detailed_params['ST_std_deviation_mV']:.3f} (N: {len(detailed_params['ST_deviations_mV'])})")
+        st_mean_dev = detailed_params.get('ST_mean_deviation_mV')
+        st_std_dev = detailed_params.get('ST_std_deviation_mV')
+        st_values = detailed_params.get('ST_deviations_mV', [])
+        if st_mean_dev is not None and len(st_values) > 0:
+            st_std_str = f"{st_std_dev:.3f}" if st_std_dev is not None else "N/A"
+            report_lines.append(f"- ST-Segment Mean Deviation (J+60ms from PR baseline): {st_mean_dev:.3f} arbitrary units")
+            report_lines.append(f"- ST-Segment Std Deviation: {st_std_str} (N: {len(st_values)})")
         else: report_lines.append("- ST-Segment deviation: Not reliably calculated.")
         report_lines.append("- Note: T-wave/U-wave morphology requires visual assessment (not quantified beyond T-peak amplitude).")
 
         report_lines.append("\n### E. Axis Information ###")
-        # QRS Axis Calculation (as implemented before)
         qrs_axis_str = "Not calculated."
-        if num_all_leads >= 6:
+        if num_all_leads >= 6: # Need at least Lead I and aVF
             try:
-                lead_I_idx = STANDARD_12_LEAD_NAMES.index("I"); lead_aVF_idx = STANDARD_12_LEAD_NAMES.index("aVF")
+                # Ensure STANDARD_12_LEAD_NAMES matches the actual lead order if it's truly 12-lead
+                # For this example, assuming direct indexing if STANDARD_12_LEAD_NAMES is used
+                lead_I_idx = STANDARD_12_LEAD_NAMES.index("I") if "I" in STANDARD_12_LEAD_NAMES else 0
+                lead_aVF_idx = STANDARD_12_LEAD_NAMES.index("aVF") if "aVF" in STANDARD_12_LEAD_NAMES else 5 # Common position
+
                 if lead_I_idx < num_all_leads and lead_aVF_idx < num_all_leads:
-                    sI, iI = nk.ecg_process(ecg_signal_all_leads[lead_I_idx,:],sampling_rate); cI=sI["ECG_Clean"].values
-                    rI=get_valid_indices(iI,'ECG_R_Peaks'); qI=get_valid_indices(iI,'ECG_Q_Peaks'); sI_peaks=get_valid_indices(iI,'ECG_S_Peaks')
-                    netI=(np.mean(cI[rI]) if rI else 0)+(np.mean(cI[qI]) if qI else 0)+(np.mean(cI[sI_peaks]) if sI_peaks else 0)
-                    saVF,iaVF=nk.ecg_process(ecg_signal_all_leads[lead_aVF_idx,:],sampling_rate);caVF=saVF["ECG_Clean"].values
-                    raVF=get_valid_indices(iaVF,'ECG_R_Peaks');qaVF=get_valid_indices(iaVF,'ECG_Q_Peaks');saVF_peaks=get_valid_indices(iaVF,'ECG_S_Peaks')
-                    netaVF=(np.mean(caVF[raVF]) if raVF else 0)+(np.mean(caVF[qaVF]) if qaVF else 0)+(np.mean(caVF[saVF_peaks]) if saVF_peaks else 0)
-                    if not(rI or qI or sI_peaks) and not(raVF or qaVF or saVF_peaks): qrs_axis_str = "Indeterminate (No QRS in Lead I & aVF)."
-                    elif abs(netI)<1e-5 and abs(netaVF)<1e-5: qrs_axis_str = "Indeterminate (Net QRS in Lead I & aVF near zero)."
-                    else: qrs_axis_str = f"{np.degrees(np.arctan2(netaVF, netI)):.1f} degrees"
-                    report_lines.append(f"- QRS Axis (Lead I & aVF net deflections): {qrs_axis_str}")
+                    sig_I_proc, info_I = nk.ecg_process(ecg_signal_all_leads[lead_I_idx,:], sampling_rate)
+                    cleaned_I = sig_I_proc["ECG_Clean"].values
+                    r_I = get_valid_indices(info_I,'ECG_R_Peaks'); q_I = get_valid_indices(info_I,'ECG_Q_Peaks'); s_I_p = get_valid_indices(info_I,'ECG_S_Peaks')
+                    
+                    net_I_amp = 0
+                    if r_I: net_I_amp += np.sum(cleaned_I[r_I])
+                    if q_I: net_I_amp += np.sum(cleaned_I[q_I]) # Q is negative
+                    if s_I_p: net_I_amp += np.sum(cleaned_I[s_I_p]) # S is negative
+                    # More accurate: R - abs(Q) - abs(S) or sum of peak values if they are signed
+                    # For simplicity using median of peak values
+                    median_r_I = np.median(cleaned_I[r_I]) if r_I else 0
+                    median_q_I = np.median(cleaned_I[q_I]) if q_I else 0
+                    median_s_I = np.median(cleaned_I[s_I_p]) if s_I_p else 0
+                    net_I = median_r_I + median_q_I + median_s_I # Q and S should be negative if true peaks
+
+                    sig_aVF_proc, info_aVF = nk.ecg_process(ecg_signal_all_leads[lead_aVF_idx,:], sampling_rate)
+                    cleaned_aVF = sig_aVF_proc["ECG_Clean"].values
+                    r_aVF = get_valid_indices(info_aVF,'ECG_R_Peaks'); q_aVF = get_valid_indices(info_aVF,'ECG_Q_Peaks'); s_aVF_p = get_valid_indices(info_aVF,'ECG_S_Peaks')
+                    median_r_aVF = np.median(cleaned_aVF[r_aVF]) if r_aVF else 0
+                    median_q_aVF = np.median(cleaned_aVF[q_aVF]) if q_aVF else 0
+                    median_s_aVF = np.median(cleaned_aVF[s_aVF_p]) if s_aVF_p else 0
+                    net_aVF = median_r_aVF + median_q_aVF + median_s_aVF
+                    
+                    if not (r_I or q_I or s_I_p) and not (r_aVF or q_aVF or s_aVF_p): qrs_axis_str = "Indeterminate (No QRS in Lead I & aVF)."
+                    elif abs(net_I)<1e-5 and abs(net_aVF)<1e-5: qrs_axis_str = "Indeterminate (Net QRS in Lead I & aVF near zero)."
+                    else: qrs_axis_str = f"{np.degrees(np.arctan2(net_aVF, net_I)):.1f} degrees"
+                    report_lines.append(f"- QRS Axis (Median peak deflections in Lead I & aVF): {qrs_axis_str}")
                 else: report_lines.append("- QRS Axis: Not attempted (Lead I or aVF index out of bounds).")
             except Exception as e_axis: report_lines.append(f"- QRS Axis Calc Error: {str(e_axis)}")
-        else: report_lines.append("- QRS Axis: Not attempted (needs >= 6 leads).")
-        report_lines.append("- P-wave axis and T-wave axis: Not implemented.")
+        else: report_lines.append("- QRS Axis: Not attempted (needs >= 6 leads, or Leads I and aVF).")
+        report_lines.append("- P-wave axis and T-wave axis: Not implemented in this script.")
 
         report_lines.append("\n### F. Heart Rate Variability (HRV) & Rate ###")
-        if 'RR_mean_ms' in detailed_params:
-            avg_hr = 60000 / detailed_params['RR_mean_ms'] if detailed_params['RR_mean_ms'] > 0 else 0
-            report_lines.append(f"- Average Heart Rate: {avg_hr:.2f} bpm")
-        else: report_lines.append("- Average Heart Rate: Not calculated.")
+        avg_hr_from_rr = detailed_params.get('RR_mean_ms')
+        if avg_hr_from_rr and avg_hr_from_rr > 0:
+            avg_hr = 60000 / avg_hr_from_rr
+            report_lines.append(f"- Average Heart Rate (from RR intervals): {avg_hr:.2f} bpm")
+        else: report_lines.append("- Average Heart Rate: Not calculated from RR intervals.")
         
-        if len(rpeaks_indices) > 5: # Min beats for reliable HRV
+        if len(rpeaks_indices) > 10: # Min beats for more reliable HRV, esp. freq domain
             try:
-                # Use the main hrv() function
                 hrv_summary = nk.hrv(rpeaks_indices, sampling_rate=sampling_rate, show=False)
-                report_lines.append("  **HRV Metrics (from nk.hrv()):**")
-                report_lines.append("  (Note: Some metrics, esp. frequency-domain & complex non-linear, are less reliable on short signals like this 10s strip.)")
-                
-                hrv_cols_time = [c for c in hrv_summary.columns if any(sub in c for sub in ['MeanNN','SDNN','RMSSD','pNN','CVNN','MedianNN','MadNN','MCVNN','IQRNN','SDRMSSD','Prc','MinNN','MaxNN','TINN','HTI','SDSD'])]
-                hrv_cols_freq = [c for c in hrv_summary.columns if any(sub in c for sub in ['ULF','VLF','LF','HF','VHF','TP','LFHF','LFn','HFn','LnHF'])]
-                hrv_cols_nonlin = [c for c in hrv_summary.columns if c not in hrv_cols_time and c not in hrv_cols_freq and "ECG" not in c and "RSP" not in c] # Crude catch-all
+                if not hrv_summary.empty:
+                    report_lines.append("  **HRV Metrics (from nk.hrv()):**")
+                    report_lines.append("  (Note: Frequency-domain & complex non-linear metrics need longer, stable recordings.)")
+                    
+                    hrv_cols_time = [c for c in hrv_summary.columns if any(sub.upper() in c.upper() for sub in ['MeanNN','SDNN','RMSSD','pNN','CVNN','MedianNN','MadNN','MCVNN','IQRNN','SDRMSSD','Prc','MinNN','MaxNN','TINN','HTI','SDSD']) and "ECG" not in c and "RSP" not in c]
+                    hrv_cols_freq = [c for c in hrv_summary.columns if any(sub.upper() in c.upper() for sub in ['ULF','VLF','LF','HF','VHF','TP','LFHF','LFn','HFn','LnHF']) and "ECG" not in c and "RSP" not in c]
+                    hrv_cols_nonlin = [c for c in hrv_summary.columns if c not in hrv_cols_time and c not in hrv_cols_freq and "ECG" not in c and "RSP" not in c and "RSA" not in c and "HRV" in c.upper()]
 
-                if hrv_cols_time: report_lines.append("    Time-Domain:")
-                for col in hrv_cols_time: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
-                
-                if hrv_cols_freq: report_lines.append("    Frequency-Domain:")
-                for col in hrv_cols_freq: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
-                
-                if hrv_cols_nonlin: report_lines.append("    Non-Linear / Other:")
-                for col in hrv_cols_nonlin: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
 
-                # RQA separately
-                hrv_rqa_results = nk.hrv_rqa(rpeaks_indices, sampling_rate=sampling_rate, show=False)
-                if hrv_rqa_results is not None and not hrv_rqa_results.empty:
-                    report_lines.append("    Recurrence Quantification Analysis (RQA):")
-                    for col in hrv_rqa_results.columns:
-                        report_lines.append(f"      {col}: {hrv_rqa_results[col].iloc[0]:.4f}")
-                
-                # Plotting (Poincare from hrv_summary if available, or manual)
-                if 'HRV_SD1' in hrv_summary.columns and 'HRV_SD2' in hrv_summary.columns and 'RR_intervals_ms' in detailed_params:
-                    fig_poincare, ax_poincare = plt.subplots(figsize=(6,6))
-                    nk.hrv_plot(hrv_summary, ax=ax_poincare, plot_type="poincare") # Try combined plot
-                    ax_poincare.set_title(f"Poincaré Plot - {lead_name}") # May override internal title
-                    save_plot(fig_poincare, f"{analysis_type.lower()}_1_poincare", lead_name_sanitized, tight_layout=False) # tight_layout false for hrv_plot
-                    report_lines.append(f"  (Poincaré plot saved using hrv_plot)")
+                    if hrv_cols_time: report_lines.append("    Time-Domain:")
+                    for col in hrv_cols_time: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
+                    
+                    if hrv_cols_freq: report_lines.append("    Frequency-Domain:")
+                    for col in hrv_cols_freq: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
+                    
+                    if hrv_cols_nonlin: report_lines.append("    Non-Linear / Other (HRV specific):")
+                    for col in hrv_cols_nonlin: report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.3f}")
+
+                    # RQA from hrv_nonlinear if available (hrv() might include some)
+                    if any("RQA" in c.upper() for c in hrv_summary.columns):
+                         report_lines.append("    Recurrence Quantification Analysis (RQA - from hrv summary):")
+                         for col in [c for c in hrv_summary.columns if "RQA" in c.upper()]:
+                             report_lines.append(f"      {col}: {hrv_summary[col].iloc[0]:.4f}")
+                    else: # Try separately if not in hrv() output
+                        try:
+                            hrv_rqa_results = nk.hrv_rqa(rpeaks_indices, sampling_rate=sampling_rate, show=False)
+                            if hrv_rqa_results is not None and not hrv_rqa_results.empty:
+                                report_lines.append("    Recurrence Quantification Analysis (RQA - separate call):")
+                                for col_rqa in hrv_rqa_results.columns:
+                                    report_lines.append(f"      {col_rqa}: {hrv_rqa_results[col_rqa].iloc[0]:.4f}")
+                        except Exception as e_rqa_sep:
+                            report_lines.append(f"    Separate RQA calculation failed: {str(e_rqa_sep)}")
+
+
+                    if 'HRV_SD1' in hrv_summary.columns and 'HRV_SD2' in hrv_summary.columns and 'RR_intervals_ms' in detailed_params:
+                        # Attempt to create Poincare plot
+                        fig_poincare_attempt, ax_poincare_attempt = plt.subplots(figsize=(6,6))
+                        try:
+                            # Check if hrv_plot exists in neurokit2
+                            if hasattr(nk, 'hrv_plot'):
+                                nk.hrv_plot(hrv_summary, ax=ax_poincare_attempt, plot_type="poincare")
+                                ax_poincare_attempt.set_title(f"Poincaré Plot - {lead_name}")
+                                save_plot(fig_poincare_attempt, f"{analysis_type.lower()}_1_poincare", lead_name_sanitized, tight_layout=False)
+                                report_lines.append(f"  (Poincaré plot saved using hrv_plot)")
+                            else:
+                                # Manual Poincaré plot as fallback
+                                rr_intervals = detailed_params['RR_intervals_ms']
+                                rr_n = rr_intervals[:-1]  # RR(n)
+                                rr_n1 = rr_intervals[1:]  # RR(n+1)
+                                
+                                # Plot points
+                                ax_poincare_attempt.scatter(rr_n, rr_n1, alpha=0.75, c='blue')
+                                
+                                # Get SD1 and SD2 from HRV
+                                sd1 = hrv_summary['HRV_SD1'].iloc[0]
+                                sd2 = hrv_summary['HRV_SD2'].iloc[0]
+                                
+                                # Identity line
+                                min_rr = min(min(rr_n), min(rr_n1))
+                                max_rr = max(max(rr_n), max(rr_n1))
+                                ax_poincare_attempt.plot([min_rr, max_rr], [min_rr, max_rr], 'k--', alpha=0.5)
+                                
+                                # Mean RR
+                                mean_rr = np.mean(rr_intervals)
+                                ax_poincare_attempt.plot(mean_rr, mean_rr, 'ro')
+                                
+                                # Set labels and title
+                                ax_poincare_attempt.set_xlabel('RR(n) (ms)')
+                                ax_poincare_attempt.set_ylabel('RR(n+1) (ms)')
+                                ax_poincare_attempt.set_title(f"Poincaré Plot - {lead_name}\nSD1: {sd1:.2f}, SD2: {sd2:.2f}")
+                                
+                                save_plot(fig_poincare_attempt, f"{analysis_type.lower()}_1_poincare", lead_name_sanitized, tight_layout=False)
+                                report_lines.append(f"  (Poincaré plot created manually as fallback)")
+                        except Exception as e_hrv_plot:
+                            plt.close(fig_poincare_attempt) # Close if plotting failed
+                            report_lines.append(f"  (Poincaré plot creation failed: {str(e_hrv_plot)})")
+                else:
+                    report_lines.append("  HRV summary from nk.hrv() was empty.")
 
             except Exception as e_hrv: report_lines.append(f"  HRV Analysis failed/incomplete: {str(e_hrv)}")
-        else: report_lines.append("  Not enough R-peaks for full HRV analysis.")
-        report_lines.append(f"- Rhythm Type: Based on above parameters.")
+        else: report_lines.append("  Not enough R-peaks for full HRV analysis (need > 10).")
+        report_lines.append(f"- Rhythm Type: (Requires interpretation of overall parameters).")
         report_lines.append("- RSA (Respiratory Sinus Arrhythmia): Requires RSP signal, not calculated here.")
-
 
         report_lines.append("\n### G. Signal Quality ###")
         if 'ECG_Quality' in signals.columns:
             mean_quality = signals['ECG_Quality'].mean()
-            report_lines.append(f"- Mean ECG Quality (NeuroKit): {mean_quality:.3f} (0-1, higher better relative to avg morphology)")
+            report_lines.append(f"- Mean ECG Quality (NeuroKit's method): {mean_quality:.3f} (0-1, relative to avg morphology)")
         else: report_lines.append("- ECG Quality metric not in signals DataFrame.")
 
         report_lines.append("\n### H. Cardiac Phase Information ###")
         phase_keys = ['ECG_Phase_Atrial','ECG_Phase_Completion_Atrial','ECG_Phase_Ventricular','ECG_Phase_Completion_Ventricular']
-        plotted_phase = False; fig_phase, ax_phase_arr = plt.subplots(len(phase_keys),1,figsize=(15,2*len(phase_keys)),sharex=True)
-        if not isinstance(ax_phase_arr,np.ndarray): ax_phase_arr = [ax_phase_arr] 
-        time_axis = np.arange(len(signals))/sampling_rate; segment_end_sample = min(len(signals), int(5*sampling_rate)) 
-        for i, key in enumerate(phase_keys):
-            if key in signals.columns:
-                report_lines.append(f"- Mean {key.replace('ECG_Phase_','')}: {signals[key].iloc[:segment_end_sample].mean():.3f}")
-                ax_phase_arr[i].plot(time_axis[:segment_end_sample],signals[key].iloc[:segment_end_sample],label=key)
-                ax_phase_arr[i].set_ylabel(key.replace('ECG_Phase_','').replace('_',' ')); ax_phase_arr[i].legend(loc='upper right'); plotted_phase = True
-            else: ax_phase_arr[i].text(0.5,0.5,f'{key} N/A',ha='center',va='center',transform=ax_phase_arr[i].transAxes)
-        if plotted_phase:
-            ax_phase_arr[0].plot(time_axis[:segment_end_sample],signals['ECG_Clean'].iloc[:segment_end_sample].values*0.1+signals[phase_keys[0]].iloc[:segment_end_sample].mean(),label='ECG(scaled&offset)',color='gray',alpha=0.5) 
-            ax_phase_arr[0].legend(loc='center right'); ax_phase_arr[-1].set_xlabel("Time (s)")
-            fig_phase.suptitle(f"Cardiac Phase Signals - {lead_name}", y=0.99) # Adjusted y for suptitle
-            save_plot(fig_phase, f"{analysis_type.lower()}_2_cardiac_phase", lead_name_sanitized)
-            report_lines.append(f"  (Cardiac phase plot saved)")
-        else: plt.close(fig_phase)
+        plotted_phase = False
+        # Determine number of rows for subplot based on available keys
+        num_phase_plots = sum(1 for key in phase_keys if key in signals.columns)
+        if num_phase_plots > 0:
+            fig_phase, ax_phase_arr = plt.subplots(num_phase_plots, 1, figsize=(15, 2 * num_phase_plots), sharex=True, squeeze=False) # squeeze=False ensures ax_phase_arr is always 2D
+            ax_idx = 0
+            time_axis = np.arange(len(signals)) / sampling_rate
+            segment_end_sample = min(len(signals), int(10 * sampling_rate)) # Show up to 10s for phase
+
+            for key in phase_keys:
+                if key in signals.columns:
+                    report_lines.append(f"- Mean {key.replace('ECG_Phase_','')}: {signals[key].iloc[:segment_end_sample].mean():.3f} (over first {segment_end_sample/sampling_rate:.1f}s)")
+                    current_ax = ax_phase_arr[ax_idx, 0]
+                    current_ax.plot(time_axis[:segment_end_sample], signals[key].iloc[:segment_end_sample], label=key)
+                    current_ax.set_ylabel(key.replace('ECG_Phase_','').replace('_',' '))
+                    current_ax.legend(loc='upper right')
+                    if ax_idx == 0: # Add scaled ECG to the first phase plot for context
+                        current_ax.plot(time_axis[:segment_end_sample],
+                                     nk.rescale(signals['ECG_Clean'].iloc[:segment_end_sample].values, to=[signals[key].iloc[:segment_end_sample].min(), signals[key].iloc[:segment_end_sample].max()]),
+                                     label='ECG (scaled)',color='gray',alpha=0.5)
+                        current_ax.legend(loc='center right') # Adjust legend position
+                    plotted_phase = True
+                    ax_idx += 1
+            
+            if plotted_phase:
+                ax_phase_arr[-1, 0].set_xlabel("Time (s)")
+                fig_phase.suptitle(f"Cardiac Phase Signals - {lead_name}", y=0.99)
+                save_plot(fig_phase, f"{analysis_type.lower()}_2_cardiac_phase", lead_name_sanitized)
+                report_lines.append(f"  (Cardiac phase plot saved for first {segment_end_sample/sampling_rate:.1f}s)")
+            else:
+                plt.close(fig_phase) # Close if no phase plots were made
+        else:
+            report_lines.append("- No cardiac phase columns found in signals DataFrame.")
+
 
         report_lines.append("\n### I. Representative Heartbeats ###")
         try:
+            # Ensure 'ECG_Clean' is used for segmentation
             epochs = nk.ecg_segment(signals['ECG_Clean'], rpeaks=rpeaks_indices, sampling_rate=sampling_rate, show=False)
-            valid_epochs = {k: df for k, df in epochs.items() if df is not None and not df.empty and 'Signal' in df and not df['Signal'].isnull().all()}
-            if valid_epochs:
+            valid_epochs_list = [df['Signal'].values for k, df in epochs.items() if df is not None and 'Signal' in df and not df['Signal'].isnull().all()]
+            
+            if valid_epochs_list:
                 fig_beats, ax_beats = plt.subplots(figsize=(10,6))
+                # Determine common length by padding/truncating to median length for averaging
+                lengths = [len(s) for s in valid_epochs_list]
+                if not lengths: raise ValueError("No valid epoch lengths.")
+                common_len = int(np.median(lengths))
+                
                 all_beat_signals_for_mean = []
-                common_len = 0
-                if valid_epochs:
-                    lengths = [len(df["Signal"]) for df in valid_epochs.values() if df is not None and "Signal" in df] # Ensure df is not None
-                    if lengths: common_len = int(np.median(lengths))
-
-                for i, (epoch_idx, data) in enumerate(valid_epochs.items()):
-                    if data is None or "Signal" not in data: continue
-                    signal_data = data["Signal"].values
-                    if common_len > 0 and len(signal_data) != common_len : 
-                        signal_data = np.interp(np.linspace(0,1,common_len), np.linspace(0,1,len(signal_data)), signal_data)
-                    if len(signal_data) == common_len: all_beat_signals_for_mean.append(signal_data)
-                    if i < 10: ax_beats.plot(signal_data, label=f"Beat {epoch_idx}" if i < 3 else None, alpha=0.6)
+                for i, signal_data in enumerate(valid_epochs_list):
+                    if len(signal_data) != common_len:
+                        signal_data_interp = np.interp(np.linspace(0, 1, common_len), np.linspace(0, 1, len(signal_data)), signal_data)
+                    else:
+                        signal_data_interp = signal_data
+                    all_beat_signals_for_mean.append(signal_data_interp)
+                    if i < 10: # Plot first 10 beats
+                        ax_beats.plot(np.arange(common_len)/sampling_rate, signal_data_interp, alpha=0.5, label=f"Beat {i+1}" if i < 3 else None)
                 
                 if all_beat_signals_for_mean:
                     mean_beat = np.mean(np.array(all_beat_signals_for_mean), axis=0)
-                    ax_beats.plot(mean_beat, color='black', linewidth=2.5, label=f'Mean Beat (N={len(all_beat_signals_for_mean)})')
-                ax_beats.set_title(f"Overlay of Segmented Heartbeats - {lead_name}"); ax_beats.set_xlabel("Samples from R-peak (approx)"); ax_beats.set_ylabel("Amplitude")
+                    ax_beats.plot(np.arange(common_len)/sampling_rate, mean_beat, color='black', linewidth=2.5, label=f'Mean Beat (N={len(all_beat_signals_for_mean)})')
+                
+                ax_beats.set_title(f"Overlay of Segmented Heartbeats - {lead_name}"); ax_beats.set_xlabel("Time from R-peak (s)"); ax_beats.set_ylabel("Amplitude (cleaned units)")
                 ax_beats.legend(); save_plot(fig_beats, f"{analysis_type.lower()}_3_segmented_beats", lead_name_sanitized)
-                report_lines.append(f"  (Segmented heartbeats plot saved)")
-            else: report_lines.append("- Could not generate segmented heartbeats plot.")
+                report_lines.append(f"  (Segmented heartbeats plot saved, N={len(all_beat_signals_for_mean)})")
+            else: report_lines.append("- Could not generate segmented heartbeats plot (no valid epochs).")
         except Exception as e_segment: report_lines.append(f"- Error during heartbeat segmentation: {str(e_segment)}")
+
+        # Call the new delineation plots function
+        generate_delineation_plots(signals, info, rpeaks_indices, sampling_rate, 
+                                   f"{analysis_type.lower()}_4", lead_name_sanitized, report_lines)
+
 
         if analysis_type == "NSR":
             report_lines.append("\n" + "="*30 + "\n### Clinical Summary Suggestion (NSR Focus) ###")
             report_lines.append("This detailed report provides extensive parameters for a Normal Sinus Rhythm assessment.")
             report_lines.append("Key NSR indicators to check from above sections:")
-            report_lines.append("  - Rate: 60-100 bpm (Section F)")
-            report_lines.append("  - Rhythm: Regular RR & PP intervals, low HRV_SDNN/RMSSD (Section B & F)")
-            report_lines.append("  - P-waves: Present before each QRS, consistent morphology (Section A, C, I)")
+            report_lines.append("  - Rate: Approx 60-100 bpm (Section F)")
+            report_lines.append("  - Rhythm: Check regularity of RR & PP intervals, HRV_SDNN/RMSSD (Section B & F)")
+            report_lines.append("  - P-waves: Present before each QRS, consistent morphology (Section A, C, I, J)")
             report_lines.append("  - P:QRS Ratio: Approx 1:1 (Section A - compare P_Peaks to R_Peaks count)")
-            report_lines.append("  - PR Interval: 120-200ms, constant (Section B)")
-            report_lines.append("  - QRS Duration: <120ms, typically <100ms (Section B)")
+            report_lines.append("  - PR Interval: Approx 120-200ms, constant (Section B)")
+            report_lines.append("  - QRS Duration: Approx <120ms (Section B)")
             report_lines.append("  - QRS Axis: Normal range (e.g., -30 to +90 degrees) (Section E)")
-            report_lines.append("Please correlate with full clinical picture.")
+            report_lines.append("  - QT/QTc: Within normal limits (Section B)")
+            report_lines.append("Please correlate with full clinical picture. This is not a diagnostic tool.")
             report_lines.append("="*30)
 
-    except ValueError as ve: 
+    except ValueError as ve:
         report_lines.append(f"ANALYSIS STOPPED for {lead_name}: {str(ve)}")
         print(f"ANALYSIS STOPPED for {lead_name}: {str(ve)}")
     except Exception as e:
