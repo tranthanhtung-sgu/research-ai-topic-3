@@ -1,0 +1,13 @@
+{
+  "mimic_path": "../MIMIC IV Selected",
+  "physionet_path": "../Physionet 2021 Selected",
+  "model_type": "12lead",
+  "checkpoint_path": "./checkpoint",
+  "batch_size": 32,
+  "epochs": 50,
+  "lr": 1e-05,
+  "weight_decay": 0.0001,
+  "max_samples": 1000,
+  "linear_prob": false,
+  "save_dir": "./results"
+}

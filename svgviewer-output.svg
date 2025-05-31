@@ -1,0 +1,83 @@
+<svg viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8f9fa"/>
+  
+  <!-- Define styles -->
+  <defs>
+    <style>
+      .box { fill: #ffffff; stroke: #2563eb; stroke-width: 2; rx: 8; }
+      .process-box { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; rx: 8; }
+      .text { font-family: Arial, sans-serif; font-size: 14px; fill: #1f2937; text-anchor: middle; }
+      .title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #1f2937; text-anchor: middle; }
+      .arrow { stroke: #374151; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .label { font-family: Arial, sans-serif; font-size: 12px; fill: #6b7280; text-anchor: middle; }
+    </style>
+    
+    <!-- Arrow marker -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+            refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#374151" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="400" y="30" class="title" style="font-size: 20px;">ECG Analysis Workflow</text>
+  
+  <!-- ECG Sample -->
+  <rect x="50" y="80" width="120" height="60" class="box"/>
+  <text x="110" y="105" class="text">ECG Sample</text>
+  <text x="110" y="125" class="text" style="font-size: 12px;">(Raw Signal)</text>
+  
+  <!-- Model -->
+  <rect x="250" y="80" width="120" height="60" class="process-box"/>
+  <text x="310" y="105" class="text">HuBERT-ECG</text>
+  <text x="310" y="125" class="text" style="font-size: 12px;">(Analysis)</text>
+  
+  <!-- Prediction -->
+  <rect x="450" y="80" width="120" height="60" class="box"/>
+  <text x="510" y="105" class="text">Prediction</text>
+  <text x="510" y="125" class="text" style="font-size: 12px;">(Results)</text>
+  
+  <!-- NeuroKit2 -->
+  <rect x="250" y="220" width="140" height="80" class="process-box"/>
+  <text x="320" y="245" class="text">NeuroKit2</text>
+  <text x="320" y="265" class="text" style="font-size: 12px;">(Signal Processing &</text>
+  <text x="320" y="280" class="text" style="font-size: 12px;">Feature Extraction)</text>
+  
+  <!-- ChatGPT -->
+  <rect x="550" y="280" width="120" height="60" class="process-box"/>
+  <text x="610" y="305" class="text">ChatGPT</text>
+  <text x="610" y="325" class="text" style="font-size: 12px;">(Report Generation)</text>
+  
+  <!-- Report -->
+  <rect x="350" y="380" width="120" height="60" class="box"/>
+  <text x="410" y="405" class="text">Final Report</text>
+  <text x="410" y="425" class="text" style="font-size: 12px;">(Clinical Summary)</text>
+  
+  <!-- Arrows -->
+  <!-- ECG to Model -->
+  <line x1="170" y1="110" x2="240" y2="110" class="arrow"/>
+  
+  <!-- Model to Prediction -->
+  <line x1="370" y1="110" x2="440" y2="110" class="arrow"/>
+  
+  <!-- ECG to NeuroKit2 -->
+  <path d="M 110 140 Q 110 180 250 260" class="arrow"/>
+  
+  <!-- Prediction to ChatGPT -->
+  <path d="M 510 140 Q 530 210 610 280" class="arrow"/>
+  
+  <!-- NeuroKit2 to ChatGPT -->
+  <path d="M 390 260 Q 470 260 550 310" class="arrow"/>
+  
+  <!-- ChatGPT to Report -->
+  <path d="M 610 340 Q 610 360 470 410" class="arrow"/>
+  
+  <!-- Labels for arrows -->
+  <text x="205" y="105" class="label">input</text>
+  <text x="405" y="105" class="label">analyze</text>
+  <text x="150" y="200" class="label">process</text>
+  <text x="470" y="200" class="label">enhance</text>
+  <text x="520" y="290" class="label">interpret</text>
+  <text x="480" y="360" class="label">format</text>
+</svg>

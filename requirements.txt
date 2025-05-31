@@ -8,7 +8,7 @@ joblib==1.5.0
 kiwisolver==1.4.8
 matplotlib==3.10.3
 neurokit2==0.2.11
-numpy==2.2.6
+numpy>=1.21.0
 packaging==25.0
 pandas==2.2.3
 pillow==11.2.1
@@ -23,3 +23,6 @@ six==1.17.0
 threadpoolctl==3.6.0
 tzdata==2025.2
 urllib3==2.4.0
+torch>=2.0.0
+transformers>=4.30.0
+tqdm>=4.62.0

@@ -1,0 +1,7 @@
+filename,1dAVb,AFIB,AFLT,LBBB,NORM,RBBB
+validation01.npy,0,0,0,0,1,0
+validation02.npy,0,0,1,0,0,0
+validation03.npy,1,0,0,0,0,0
+validation04.npy,0,1,0,0,0,0
+validation05.npy,0,0,0,0,0,1
+validation06.npy,0,0,0,1,0,0

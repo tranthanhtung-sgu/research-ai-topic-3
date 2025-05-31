@@ -1,0 +1,68 @@
+## Ultra Comprehensive ECG Analysis for Lead II (NORM CASE) ##
+## WITH COMPARATIVE PLOTS vs. NSR REFERENCE (Lead II) ##
+Analyzing Lead: Lead II
+Sampling Rate: 100 Hz
+Signal Duration: 10.00 seconds
+------------------------------
+
+### Comparative Plots Generated ###
+- RR Distribution: NORM_rr_distribution_comparative_Lead_II_idx1.png
+- Segmented Heartbeats: NORM_segmented_heartbeats_comparative_Lead_II_idx1.png
+
+### A. Fiducial Points Detection (CASE) ###
+- P_Onsets detected: 12
+- P_Peaks detected: 12
+- P_Offsets detected: 12
+- Q_Peaks detected: 20
+- R_Onsets detected: 12
+- R_Peaks detected: 21
+- R_Offsets detected: 9
+- S_Peaks detected: 20
+- T_Onsets detected: 9
+- T_Peaks detected: 9
+- T_Offsets detected: 9
+
+### B. Intervals and Durations (CASE) ###
+- RR Mean (ms): 444.50ms (StdDev: 71.03, N: 20)
+- PP Mean (ms): 770.91ms (StdDev: 493.25, N: 11)
+- PR Mean (ms): 110.00ms (StdDev: 20.00, N: 8)
+- QRS Mean (ms): 135.00ms (StdDev: 46.46, N: 6)
+- QT Mean (ms): 603.33ms (StdDev: 124.05, N: 6)
+- QTc Mean (Bazett): 899.03 (StdDev: 221.84, N: 6)
+
+### C. Amplitudes (from Cleaned ECG - CASE) ###
+- P Peak Amp: Mean=-0.010, Std=0.066 (N=12) arb. units
+- Q Peak Amp: Mean=-0.089, Std=0.020 (N=20) arb. units
+- R Peak Amp: Mean=0.440, Std=0.066 (N=21) arb. units
+- S Peak Amp: Mean=-0.152, Std=0.051 (N=20) arb. units
+- T Peak Amp: Mean=-0.006, Std=0.059 (N=9) arb. units
+
+### D. ST-Segment Analysis (Basic - CASE) ###
+- ST Mean Dev (J+60ms): -0.011 arb. units (Std: 0.058, N: 8)
+
+### E. Axis Information (CASE - General Note) ###
+- QRS Axis, P-wave axis, T-wave axis: Full calculation requires multiple specific leads (e.g., I & aVF). This report focuses on single-lead parameters derived from the chosen lead.
+
+### F. Heart Rate Variability (HRV) & Rate (CASE) ###
+- Avg HR (from RR): 134.98 bpm
+  **HRV Metrics (nk.hrv() - CASE):** (Note: Freq-domain & non-linear metrics need longer, stable recordings)
+  (See Comparative Poincaré plot: NORM_1_poincare_Lead_II_idx1.png if HRV params available for both conditions)
+
+### G. Signal Quality (CASE) ###
+- Mean ECG Quality: 0.621 (NeuroKit method)
+
+### H. Cardiac Phase Information (CASE - General Note) ###
+- Cardiac phase plotting is not included in this comparative version for brevity. See NeuroKit examples if specific phase plots are needed.
+
+### I. Representative Heartbeats (CASE - Superimposed) ###
+- See comparative plot: NORM_segmented_heartbeats_comparative_Lead_II_idx1.png (shows superimposed beats and average for both conditions).
+
+==============================
+### Clinical Summary Suggestion (NORM CASE) ###
+Key NORM indicators to check (Compare CASE vs REFERENCE in plots):
+  - QRS Duration: Prolonged (>120ms) with characteristic morphology
+  - QRS Morphology: Broad monophasic R waves in I, aVL, V5-V6; deep S waves in V1-V3
+  - ST-T Changes: Secondary repolarization abnormalities
+  - Axis: Usually left axis deviation
+Please correlate with full clinical picture. This is not a diagnostic tool.
+==============================
