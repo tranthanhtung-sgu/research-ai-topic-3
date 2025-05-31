@@ -10,46 +10,46 @@ Signal Duration: 10.00 seconds
 - Segmented Heartbeats: AFIB_segmented_heartbeats_comparative_Lead_II_idx1.png
 
 ### A. Fiducial Points Detection (CASE) ###
-- P_Onsets detected: 4
-- P_Peaks detected: 4
-- P_Offsets detected: 4
-- Q_Peaks detected: 27
-- R_Onsets detected: 4
-- R_Peaks detected: 28
-- R_Offsets detected: 10
-- S_Peaks detected: 27
-- T_Onsets detected: 10
-- T_Peaks detected: 10
-- T_Offsets detected: 8
+- P_Onsets detected: 11
+- P_Peaks detected: 11
+- P_Offsets detected: 10
+- Q_Peaks detected: 21
+- R_Onsets detected: 10
+- R_Peaks detected: 22
+- R_Offsets detected: 3
+- S_Peaks detected: 21
+- T_Onsets detected: 3
+- T_Peaks detected: 3
+- T_Offsets detected: 3
 
 ### B. Intervals and Durations (CASE) ###
-- RR Mean (ms): 343.33ms (StdDev: 15.63, N: 27)
-- PP Mean (ms): 1133.33ms (StdDev: 1100.74, N: 3)
-- PR Mean (ms): 130.00ms (StdDev: 0.00, N: 3)
-- QRS Mean (ms): 110.00ms (StdDev: 21.60, N: 3)
-- QT Mean (ms): 442.50ms (StdDev: 135.53, N: 4)
-- QTc Mean (Bazett): 775.64 (StdDev: 237.05, N: 4)
+- RR Mean (ms): 435.24ms (StdDev: 80.16, N: 21)
+- PP Mean (ms): 820.00ms (StdDev: 354.68, N: 10)
+- PR Mean (ms): 140.00ms (StdDev: 28.67, N: 9)
+- QRS Mean (ms): 80.00ms (StdDev: 0.00, N: 1)
+- QT Mean (ms): 305.00ms (StdDev: 5.00, N: 2)
+- QTc Mean (Bazett): 411.95 (StdDev: 30.37, N: 2)
 
 ### C. Amplitudes (from Cleaned ECG - CASE) ###
-- P Peak Amp: Mean=0.092, Std=0.023 (N=4) arb. units
-- Q Peak Amp: Mean=-0.063, Std=0.078 (N=27) arb. units
-- R Peak Amp: Mean=0.343, Std=0.063 (N=28) arb. units
-- S Peak Amp: Mean=-0.139, Std=0.060 (N=27) arb. units
-- T Peak Amp: Mean=0.046, Std=0.049 (N=10) arb. units
+- P Peak Amp: Mean=-0.057, Std=0.050 (N=11) arb. units
+- Q Peak Amp: Mean=-0.131, Std=0.030 (N=21) arb. units
+- R Peak Amp: Mean=0.604, Std=0.164 (N=22) arb. units
+- S Peak Amp: Mean=-0.077, Std=0.020 (N=21) arb. units
+- T Peak Amp: Mean=0.042, Std=0.053 (N=3) arb. units
 
 ### D. ST-Segment Analysis (Basic - CASE) ###
-- ST Mean Dev (J+60ms): 0.000 arb. units (Std: 0.037, N: 6)
+- ST Mean Dev (J+60ms): 0.052 arb. units (Std: 0.029, N: 3)
 
 ### E. Axis Information (CASE - General Note) ###
 - QRS Axis, P-wave axis, T-wave axis: Full calculation requires multiple specific leads (e.g., I & aVF). This report focuses on single-lead parameters derived from the chosen lead.
 
 ### F. Heart Rate Variability (HRV) & Rate (CASE) ###
-- Avg HR (from RR): 174.76 bpm
+- Avg HR (from RR): 137.86 bpm
   **HRV Metrics (nk.hrv() - CASE):** (Note: Freq-domain & non-linear metrics need longer, stable recordings)
   (See Comparative Poincaré plot: AFIB_1_poincare_Lead_II_idx1.png if HRV params available for both conditions)
 
 ### G. Signal Quality (CASE) ###
-- Mean ECG Quality: 0.630 (NeuroKit method)
+- Mean ECG Quality: 0.608 (NeuroKit method)
 
 ### H. Cardiac Phase Information (CASE - General Note) ###
 - Cardiac phase plotting is not included in this comparative version for brevity. See NeuroKit examples if specific phase plots are needed.

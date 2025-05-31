@@ -28,7 +28,7 @@ def get_valid_indices(info_dict, key):
     if not hasattr(indices, '__iter__'): return []
     return [int(p) for p in indices if pd.notna(p) and isinstance(p, (int, float, np.number)) and p < 1e12]
 
-# calculate_intervals_and_amplitudes remains the same as in your afib.py
+# calculate_intervals_and_amplitudes remains the same as in your 1advb.py
 def calculate_intervals_and_amplitudes(signals_df, info_dict, rpeaks_indices, sampling_rate):
     results = {}
     if not isinstance(signals_df, pd.DataFrame) or 'ECG_Clean' not in signals_df.columns:
@@ -313,15 +313,15 @@ def generate_summary_report(detailed_params, info_dict, rpeaks_indices, sampling
 
 # --- Main Orchestrator ---
 def main_orchestrator():
-    # --- CASE Condition (e.g., AFib from validation02.npy) ---
-    case_npy_file_path = "/home/tony/neurokit/validation/validation02/validation02.npy"
-    case_condition_label_short = "AFIB" # For file prefix
-    case_condition_label_full = "AFIB CASE" # For titles/reports
+    # --- CASE Condition (e.g., 1dAVb from validation03.npy) ---
+    case_npy_file_path = "../validation/validation03/validation03.npy"
+    case_condition_label_short = "1dAVb" # For file prefix
+    case_condition_label_full = "1dAVb CASE" # For titles/reports
     case_sampling_rate = 100
     case_preferred_lead_idx = 1 # e.g. Lead II
     
     # --- NORMAL REFERENCE Condition (validation01.npy) ---
-    normal_ref_npy_file_path = "/home/tony/neurokit/validation/validation01/validation01.npy"
+    normal_ref_npy_file_path = "../validation/validation01/validation01.npy"
     # normal_ref_condition_label_short = "NSR" # Not used for file prefix, case prefix is used
     normal_ref_condition_label_full = "NSR REFERENCE"
     normal_ref_sampling_rate = 100
@@ -392,7 +392,7 @@ def main_orchestrator():
     report_lines.append(f"- Segmented Heartbeats: {case_condition_label_short}_segmented_heartbeats_comparative_{lead_name_sanitized_case}.png")
     
     detailed_params_case = calculate_intervals_and_amplitudes(signals_case, info_case, rpeaks_case, case_sampling_rate)
-    # ... (Sections A-H parameter reporting for CASE data, copied from your afib.py perform_full_analysis...)
+    # ... (Sections A-H parameter reporting for CASE data, copied from your 1advb.py perform_full_analysis...)
     report_lines.append("\n### A. Fiducial Points Detection (CASE) ###")
     fiducial_keys = ['ECG_P_Onsets','ECG_P_Peaks','ECG_P_Offsets','ECG_Q_Peaks','ECG_R_Onsets','ECG_R_Peaks','ECG_R_Offsets','ECG_S_Peaks','ECG_T_Onsets','ECG_T_Peaks','ECG_T_Offsets']
     for key in fiducial_keys: report_lines.append(f"- {key.replace('ECG_', '')} detected: {len(get_valid_indices(info_case, key))}")
@@ -454,8 +454,8 @@ def main_orchestrator():
 
     # Clinical Summary Section (for CASE)
     report_lines.append("\n" + "="*30 + f"\n### Clinical Summary Suggestion ({case_condition_label_full}) ###")
-    if case_condition_label_short == "AFIB":
-        report_lines.append("Key AFib indicators to check (Compare CASE vs REFERENCE in plots):")
+    if case_condition_label_short == "1dAVb":
+        report_lines.append("Key 1dAVb indicators to check (Compare CASE vs REFERENCE in plots):")
         report_lines.append("  - Rhythm: Irregularly irregular RR intervals (high HRV_SDNN, RMSSD). Check Comparative Poincaré plot & RR Distribution.")
         report_lines.append("  - P-waves: Often absent/fibrillatory. Check P-wave counts & morphology (Sections A, C).")
         report_lines.append("  - Rate: Ventricular rate variable, often rapid if untreated.")
