@@ -4,6 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import numpy as np
+# Set matplotlib backend to non-interactive to avoid tkinter errors
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 import seaborn as sns
@@ -217,7 +220,7 @@ class ECGTrainer:
         
         cm_path = os.path.join(self.save_dir, f'confusion_matrix_epoch_{epoch}.png')
         plt.savefig(cm_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        plt.close()  # Close the figure to free memory
     
     def plot_training_history(self):
         """Plot training history"""
@@ -244,7 +247,7 @@ class ECGTrainer:
         plt.tight_layout()
         history_path = os.path.join(self.save_dir, 'training_history.png')
         plt.savefig(history_path, dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.close()  # Close the figure to free memory
 
 def main():
     parser = argparse.ArgumentParser(description='Fine-tune ECGFounder on 6 conditions')
@@ -287,9 +290,9 @@ def main():
     print("Initializing data loader...")
     data_loader = ECGDataLoader(args.mimic_path, args.physionet_path)
     
-    # Create data loaders
+    # Create data loaders with 40-40-20 split
     print("Loading data...")
-    train_loader, val_loader = data_loader.create_dataloaders(
+    train_loader, val_loader, test_loader = data_loader.create_dataloaders(
         batch_size=args.batch_size,
         max_samples_per_condition=args.max_samples
     )
@@ -300,6 +303,7 @@ def main():
     print(f"Classes: {class_names}")
     print(f"Train batches: {len(train_loader)}")
     print(f"Validation batches: {len(val_loader)}")
+    print(f"Test batches: {len(test_loader)}")
     
     # Load pre-trained model
     print(f"Loading {args.model_type} ECGFounder model...")
@@ -332,9 +336,31 @@ def main():
     # Plot training history
     trainer.plot_training_history()
     
+    # Save test loader in checkpoint for later use
+    model_path = os.path.join(save_dir, 'best_model.pth')
+    checkpoint = torch.load(model_path)
+    checkpoint['test_set_exists'] = True
+    torch.save(checkpoint, model_path)
+    
     print(f"\nTraining completed!")
     print(f"Best validation accuracy: {best_acc:.2f}%")
     print(f"Results saved to: {save_dir}")
+    
+    # Optionally: run quick test evaluation
+    print("\nEvaluating on test set...")
+    from benchmark_model import ECGBenchmark
+    
+    # Initialize benchmark
+    benchmark = ECGBenchmark(trainer.model, device, class_names, 
+                            os.path.join(save_dir, 'test_evaluation'))
+    
+    # Run evaluation on test set
+    test_results, _ = benchmark.run_full_benchmark(test_loader)
+    
+    print(f"\nTest set evaluation:")
+    print(f"  Overall accuracy: {test_results['overall_accuracy']:.3f}")
+    print(f"  Macro F1-score: {test_results['macro_averages']['f1_score']:.3f}")
+    print(f"  Results saved to: {os.path.join(save_dir, 'test_evaluation')}")
 
 if __name__ == "__main__":
     main() 

@@ -131,21 +131,24 @@ def test_data_loading():
         data_loader = ECGDataLoader(mimic_path, physionet_path)
         print("✅ Data loader initialized")
         
-        # Test loading a small amount of data
+        # Test loading a small amount of data with 40-40-20 split
         print("   Testing data loading with max 10 samples per condition...")
-        train_loader, val_loader = data_loader.create_dataloaders(
+        train_loader, val_loader, test_loader = data_loader.create_dataloaders(
             batch_size=4, max_samples_per_condition=10
         )
         
         print(f"✅ Data loaders created successfully")
         print(f"   Train batches: {len(train_loader)}")
         print(f"   Validation batches: {len(val_loader)}")
+        print(f"   Test batches: {len(test_loader)}")
         
-        # Test getting a batch
-        for batch_data, batch_labels in train_loader:
-            print(f"   Sample batch shape: {batch_data.shape}")
-            print(f"   Sample labels: {batch_labels}")
-            break
+        # Test getting a batch from each loader
+        print("   Testing batch extraction:")
+        for loader_name, loader in [("Train", train_loader), ("Validation", val_loader), ("Test", test_loader)]:
+            for batch_data, batch_labels in loader:
+                print(f"   {loader_name} batch shape: {batch_data.shape}")
+                print(f"   {loader_name} labels: {batch_labels}")
+                break
             
     except Exception as e:
         print(f"❌ Data loading test failed: {e}")

@@ -184,26 +184,40 @@ class ECGDataLoader:
         return all_data, all_labels
     
     def create_dataloaders(self, batch_size: int = 32, test_size: float = 0.2, 
-                          max_samples_per_condition: int = 1000) -> Tuple[DataLoader, DataLoader]:
-        """Create train and test dataloaders"""
+                          max_samples_per_condition: int = 1000) -> Tuple[DataLoader, DataLoader, DataLoader]:
+        """Create train, validation, and test dataloaders with a 40-40-20 split"""
         # Load all data
         all_data, all_labels = self.load_all_data(max_samples_per_condition)
         
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            all_data, all_labels, test_size=test_size, 
+        # First split: 80% train+val, 20% test
+        X_temp, X_test, y_temp, y_test = train_test_split(
+            all_data, all_labels, test_size=0.2, 
             stratify=all_labels, random_state=42
         )
         
+        # Second split: Split the 80% into 40-40 (train and validation)
+        # This is a 50-50 split of the temporary data which is 80% of the original
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_temp, y_temp, test_size=0.5,  # 50% of 80% is 40% of original
+            stratify=y_temp, random_state=42
+        )
+        
+        print(f"\nData split:")
+        print(f"  Training set: {len(X_train)} samples ({len(X_train)/len(all_data)*100:.1f}%)")
+        print(f"  Validation set: {len(X_val)} samples ({len(X_val)/len(all_data)*100:.1f}%)")
+        print(f"  Test set: {len(X_test)} samples ({len(X_test)/len(all_data)*100:.1f}%)")
+        
         # Create datasets
         train_dataset = ECGDataset(X_train, y_train)
+        val_dataset = ECGDataset(X_val, y_val)
         test_dataset = ECGDataset(X_test, y_test)
         
         # Create dataloaders
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
         
-        return train_loader, test_loader
+        return train_loader, val_loader, test_loader
     
     def get_class_names(self) -> List[str]:
         """Get the class names in order"""

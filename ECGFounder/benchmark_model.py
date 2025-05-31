@@ -9,6 +9,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
+# Set matplotlib backend to non-interactive to avoid tkinter errors
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
@@ -200,7 +203,7 @@ class ECGBenchmark:
         # Save plot
         cm_path = os.path.join(self.save_dir, 'confusion_matrix.png')
         plt.savefig(cm_path, dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.close()  # Close the figure to free memory
         
         return cm, cm_percent
     
@@ -283,7 +286,7 @@ class ECGBenchmark:
         # Save plot
         metrics_path = os.path.join(self.save_dir, 'per_class_metrics.png')
         plt.savefig(metrics_path, dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.close()  # Close the figure to free memory
     
     def plot_roc_curves(self, y_true, y_prob):
         """Create ROC curves for each class"""
@@ -321,7 +324,7 @@ class ECGBenchmark:
         # Save plot
         roc_path = os.path.join(self.save_dir, 'roc_curves.png')
         plt.savefig(roc_path, dpi=300, bbox_inches='tight')
-        plt.show()
+        plt.close()  # Close the figure to free memory
     
     def save_detailed_results(self, metrics, y_true, y_pred):
         """Save detailed results to JSON"""
@@ -408,6 +411,8 @@ def main():
                       help='Maximum samples per condition for testing')
     parser.add_argument('--save_dir', type=str, default='./benchmark_results',
                       help='Directory to save benchmark results')
+    parser.add_argument('--eval_set', type=str, choices=['validation', 'test', 'both'], default='both',
+                      help='Which dataset to evaluate on')
     
     args = parser.parse_args()
     
@@ -441,30 +446,62 @@ def main():
     print(f"Best validation accuracy during training: {checkpoint.get('best_val_acc', 'N/A')}")
     
     # Initialize data loader
-    print("Loading test data...")
+    print("Loading data...")
     data_loader = ECGDataLoader(args.mimic_path, args.physionet_path)
     
-    # Create test data loader
-    _, test_loader = data_loader.create_dataloaders(
+    # Create data loaders with 40-40-20 split
+    train_loader, val_loader, test_loader = data_loader.create_dataloaders(
         batch_size=args.batch_size,
         max_samples_per_condition=args.max_samples
     )
     
+    print(f"Train batches: {len(train_loader)}")
+    print(f"Validation batches: {len(val_loader)}")
     print(f"Test batches: {len(test_loader)}")
     
-    # Initialize benchmark
-    benchmark = ECGBenchmark(model, device, class_names, save_dir)
+    # Create separate directories for validation and test
+    val_dir = os.path.join(save_dir, "validation")
+    test_dir = os.path.join(save_dir, "test")
     
-    # Run benchmark
-    detailed_results, results_df = benchmark.run_full_benchmark(test_loader)
+    val_results = None
+    test_results = None
     
-    print(f"\n🎯 Benchmark Summary:")
-    print(f"   📁 Results directory: {save_dir}")
-    print(f"   📊 Performance table: {save_dir}/performance_table.csv")
-    print(f"   🎨 Confusion matrix: {save_dir}/confusion_matrix.png")
-    print(f"   📈 Per-class metrics: {save_dir}/per_class_metrics.png")
-    print(f"   📉 ROC curves: {save_dir}/roc_curves.png")
-    print(f"   💾 Detailed results: {save_dir}/detailed_results.json")
+    # Run benchmark on validation set
+    if args.eval_set in ['validation', 'both']:
+        print("\n" + "="*60)
+        print("🔍 Evaluating on VALIDATION set...")
+        benchmark_val = ECGBenchmark(model, device, class_names, val_dir)
+        val_results, val_df = benchmark_val.run_full_benchmark(val_loader)
+    
+    # Run benchmark on test set
+    if args.eval_set in ['test', 'both']:
+        print("\n" + "="*60)
+        print("🔍 Evaluating on TEST set...")
+        benchmark_test = ECGBenchmark(model, device, class_names, test_dir)
+        test_results, test_df = benchmark_test.run_full_benchmark(test_loader)
+    
+    # Print comparison if both sets were evaluated
+    if args.eval_set == 'both' and val_results and test_results:
+        print("\n" + "🎯 BENCHMARK SUMMARY COMPARISON")
+        print("="*70)
+        print(f"📁 Results saved to: {save_dir}")
+        print(f"📊 Training Val Accuracy: {checkpoint.get('best_val_acc', 'N/A')}")
+        print("\n📋 Performance Comparison:")
+        print(f"                     Validation          Test")
+        print(f"                     ----------          ----")
+        print(f"Overall Accuracy:    {val_results['overall_accuracy']:.3f}              {test_results['overall_accuracy']:.3f}")
+        print(f"Macro Precision:     {val_results['macro_averages']['precision']:.3f}              {test_results['macro_averages']['precision']:.3f}")
+        print(f"Macro Recall:        {val_results['macro_averages']['recall']:.3f}              {test_results['macro_averages']['recall']:.3f}")
+        print(f"Macro F1-Score:      {val_results['macro_averages']['f1_score']:.3f}              {test_results['macro_averages']['f1_score']:.3f}")
+        
+        print("\n📋 Per-Condition F1-Scores:")
+        for condition in class_names:
+            val_f1 = val_results['per_class_metrics'][condition]['f1_score']
+            test_f1 = test_results['per_class_metrics'][condition]['f1_score']
+            print(f"  {condition:6s}:        {val_f1:.3f}              {test_f1:.3f}")
+    
+    print(f"\n✅ Benchmark completed!")
+    print(f"📁 Results saved to: {save_dir}")
 
 if __name__ == "__main__":
     main() 

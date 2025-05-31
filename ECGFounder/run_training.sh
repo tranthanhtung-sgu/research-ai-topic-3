@@ -2,9 +2,11 @@
 
 # ECGFounder Fine-tuning Script
 # This script runs fine-tuning on 6 ECG conditions: NORM, AFIB, AFLT, 1dAVb, RBBB, LBBB
+# Uses a 40-40-20 split for training, validation, and testing
 
 echo "🚀 Starting ECGFounder Fine-tuning on 6 Conditions"
 echo "=================================================="
+echo "Using 40-40-20 split for train-validation-test"
 
 # Check if conda environment is activated
 if [[ "$CONDA_DEFAULT_ENV" != "ECGFounder" ]]; then
@@ -88,6 +90,7 @@ echo "   Epochs: $EPOCHS"
 echo "   Learning Rate: $LEARNING_RATE"
 echo "   Max Samples per Condition: $MAX_SAMPLES"
 echo "   Linear Probing: ${LINEAR_PROB:-No}"
+echo "   Data Split: 40% train, 40% validation, 20% test"
 echo ""
 
 # Run the training
@@ -109,6 +112,10 @@ if [ $? -eq 0 ]; then
     echo "   - Confusion matrices"
     echo "   - Classification reports"
     echo "   - Best model checkpoint"
+    echo "   - Test set evaluation results"
+    echo ""
+    echo "📈 To run benchmarks on validation and test sets:"
+    echo "   python quick_benchmark.py"
 else
     echo ""
     echo "❌ Training failed!"

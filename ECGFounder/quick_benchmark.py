@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
 Quick benchmark script - automatically finds and evaluates the latest trained model
+on both validation and test sets
 """
 
 import os
 import glob
+# Set matplotlib backend to non-interactive to avoid tkinter errors
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 from benchmark_model import ECGBenchmark
 from finetune_model import ft_12lead_ECGFounder, ft_1lead_ECGFounder
 from ecg_data_loader import ECGDataLoader
@@ -35,7 +39,7 @@ def find_latest_model(results_dir='./results'):
     return model_path, latest_dir
 
 def quick_benchmark():
-    """Run quick benchmark on latest model"""
+    """Run quick benchmark on latest model - evaluates on both validation and test sets"""
     print("🚀 Quick ECG Model Benchmark")
     print("="*50)
     
@@ -78,45 +82,71 @@ def quick_benchmark():
     print(f"📊 Best validation accuracy during training: {best_val_acc}")
     
     # Load test data
-    print("Loading test data...")
+    print("Loading data...")
     data_loader = ECGDataLoader('../MIMIC IV Selected', '../Physionet 2021 Selected')
     
-    # Create test data loader (smaller sample for quick benchmark)
-    _, test_loader = data_loader.create_dataloaders(
+    # Create data loaders (smaller sample for quick benchmark)
+    train_loader, val_loader, test_loader = data_loader.create_dataloaders(
         batch_size=32,
         max_samples_per_condition=200  # Smaller for quick evaluation
     )
     
+    print(f"Train batches: {len(train_loader)}")
+    print(f"Validation batches: {len(val_loader)}")
     print(f"Test batches: {len(test_loader)}")
     
     # Create benchmark directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_dir = f"./benchmark_results/quick_benchmark_{model_type}_{timestamp}"
+    benchmark_dir = f"./benchmark_results/quick_benchmark_{model_type}_{timestamp}"
     
-    # Initialize benchmark
-    benchmark = ECGBenchmark(model, device, class_names, save_dir)
+    # Create separate directories for validation and test results
+    val_dir = os.path.join(benchmark_dir, "validation")
+    test_dir = os.path.join(benchmark_dir, "test")
     
-    # Run benchmark
+    # Evaluate on validation set
     print("\n" + "="*50)
-    detailed_results, results_df = benchmark.run_full_benchmark(test_loader)
+    print("Evaluating on validation set...")
+    benchmark_val = ECGBenchmark(model, device, class_names, val_dir)
+    val_results, val_df = benchmark_val.run_full_benchmark(val_loader)
     
-    # Print summary
-    print("\n" + "🎯 QUICK BENCHMARK SUMMARY")
-    print("="*50)
-    print(f"📁 Results saved to: {save_dir}")
-    print(f"📊 Overall Test Accuracy: {detailed_results['overall_accuracy']:.3f}")
-    print(f"📈 Training Val Accuracy: {best_val_acc}")
+    # Evaluate on test set
+    print("\n" + "="*50)
+    print("Evaluating on test set...")
+    benchmark_test = ECGBenchmark(model, device, class_names, test_dir)
+    test_results, test_df = benchmark_test.run_full_benchmark(test_loader)
     
-    print("\n📋 Per-Condition Performance:")
-    for condition, metrics in detailed_results['per_class_metrics'].items():
-        print(f"  {condition:6s}: F1={metrics['f1_score']:.3f}, AUC={metrics['auc']:.3f}")
+    # Print summary comparison
+    print("\n" + "🎯 BENCHMARK SUMMARY COMPARISON")
+    print("="*70)
+    print(f"📁 Results saved to: {benchmark_dir}")
+    print(f"📊 Training Best Val Accuracy: {best_val_acc}")
+    print("\n📋 Performance Comparison:")
+    print(f"                     Validation          Test")
+    print(f"                     ----------          ----")
+    print(f"Overall Accuracy:    {val_results['overall_accuracy']:.3f}              {test_results['overall_accuracy']:.3f}")
+    print(f"Macro Precision:     {val_results['macro_averages']['precision']:.3f}              {test_results['macro_averages']['precision']:.3f}")
+    print(f"Macro Recall:        {val_results['macro_averages']['recall']:.3f}              {test_results['macro_averages']['recall']:.3f}")
+    print(f"Macro F1-Score:      {val_results['macro_averages']['f1_score']:.3f}              {test_results['macro_averages']['f1_score']:.3f}")
     
-    print(f"\n📁 Detailed results: {save_dir}/")
-    print("   - performance_table.csv")
-    print("   - confusion_matrix.png") 
-    print("   - per_class_metrics.png")
-    print("   - roc_curves.png")
-    print("   - detailed_results.json")
+    print("\n📋 Per-Condition F1-Scores:")
+    for condition in class_names:
+        val_f1 = val_results['per_class_metrics'][condition]['f1_score']
+        test_f1 = test_results['per_class_metrics'][condition]['f1_score']
+        print(f"  {condition:6s}:        {val_f1:.3f}              {test_f1:.3f}")
+    
+    print(f"\n📁 Detailed results: {benchmark_dir}/")
+    print("   - validation/")
+    print("     - performance_table.csv")
+    print("     - confusion_matrix.png") 
+    print("     - per_class_metrics.png")
+    print("     - roc_curves.png")
+    print("     - detailed_results.json")
+    print("   - test/")
+    print("     - performance_table.csv")
+    print("     - confusion_matrix.png") 
+    print("     - per_class_metrics.png")
+    print("     - roc_curves.png")
+    print("     - detailed_results.json")
 
 if __name__ == "__main__":
     quick_benchmark() 
