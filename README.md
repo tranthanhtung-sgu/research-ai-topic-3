@@ -1,7 +1,7 @@
 # 12-Lead ECG Classification Benchmark Results
 
 ## Overview
-This directory contains the benchmark results for a 12-lead ECG classification model evaluated on May 31, 2025. The model was tested on 6 cardiac conditions with 200 samples per class.
+This directory (`ECGFounder/benchmark_results/benchmark_12lead_20250531_122949`) contains the benchmark results for a 12-lead ECG classification model evaluated on May 31, 2025. The model was tested on 6 cardiac conditions with 200 samples per class.
 
 ## Performance Metrics
 
@@ -23,17 +23,17 @@ This directory contains the benchmark results for a 12-lead ECG classification m
 ## Visualizations
 
 ### ROC Curves
-![ROC Curves](roc_curves.png)
+![ROC Curves](ECGFounder/benchmark_results/benchmark_12lead_20250531_122949/roc_curves.png)
 
 The ROC curves demonstrate the trade-off between sensitivity and specificity for each class. All classes show good discrimination ability with AUC values ranging from 0.916 to 0.976.
 
 ### Per-Class Metrics
-![Per-Class Metrics](per_class_metrics.png)
+![Per-Class Metrics](ECGFounder/benchmark_results/benchmark_12lead_20250531_122949/per_class_metrics.png)
 
 This visualization compares precision, recall, and F1-score across all classes.
 
 ### Confusion Matrix
-![Confusion Matrix](confusion_matrix.png)
+![Confusion Matrix](ECGFounder/benchmark_results/benchmark_12lead_20250531_122949/confusion_matrix.png)
 
 The confusion matrix shows the distribution of predictions for each true class. Notable observations:
 - RBBB has the highest correct classification rate (177/200)
@@ -54,3 +54,13 @@ The confusion matrix shows the distribution of predictions for each true class. 
 - `roc_curves.png`: ROC curves for all classes
 - `per_class_metrics.png`: Visual comparison of precision, recall, and F1-score
 - `confusion_matrix.png`: Visualization of prediction errors 
+
+## Location
+This benchmark is located at `ECGFounder/benchmark_results/benchmark_12lead_20250531_122949/` within the NeuroKit project. To access these results, navigate to this directory from the project root.
+
+## Running Similar Benchmarks
+To run similar benchmarks, refer to the main ECGFounder documentation. The naming convention for benchmark folders follows the pattern:
+```
+benchmark_[lead-type]_[YYYYMMDD]_[HHMMSS]
+```
+For example, this benchmark (`benchmark_12lead_20250531_122949`) was run on a 12-lead ECG model on May 31, 2025 at 12:29:49. 
