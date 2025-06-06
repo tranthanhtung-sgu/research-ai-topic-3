@@ -78,4 +78,8 @@ MIMIC\ IV\ Selected
 *.pth
 *.pt
 
-HuBERT-ECG/
+# HuBERT-ECG
+HuBERT-ECG/figures/
+HuBERT-ECG/reproducibility/
+HuBERT-ECG/code/outputs/
+HuBERT-ECG/code/sample_data/

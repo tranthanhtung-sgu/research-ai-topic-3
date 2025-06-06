@@ -1,0 +1,30 @@
+{
+    "validation04": {
+        "validation04": {
+            "NORMAL": {
+                "probability": 0.0021498461719602346,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.5424695611000061,
+                "prediction": true
+            },
+            "Atrial Flutter": {
+                "probability": 0.41855132579803467,
+                "prediction": false
+            },
+            "Left bundle branch block": {
+                "probability": 0.0010818105656653643,
+                "prediction": false
+            },
+            "Right bundle branch block": {
+                "probability": 0.01756538450717926,
+                "prediction": false
+            },
+            "1st-degree AV block": {
+                "probability": 0.008219614624977112,
+                "prediction": false
+            }
+        }
+    }
+}

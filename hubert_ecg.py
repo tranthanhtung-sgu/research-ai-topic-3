@@ -3,7 +3,7 @@ import torch.nn as nn
 from transformers import AutoModel
 
 class HuBERTECG(nn.Module):
-    def __init__(self, model_size='small'):
+    def __init__(self, model_size='large'):
         super().__init__()
         self.model = AutoModel.from_pretrained(f"Edoardo-BS/hubert-ecg-{model_size}", trust_remote_code=True)
         

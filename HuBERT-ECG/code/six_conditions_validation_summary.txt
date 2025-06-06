@@ -1,0 +1,10 @@
+Validation Summary
+=================
+
+Total samples: 1
+
+Predictions by condition:
+  Atrial Fibrillation: 1 (100.0%)
+
+Top predictions by sample:
+  validation04/validation04: Atrial Fibrillation (0.5425)

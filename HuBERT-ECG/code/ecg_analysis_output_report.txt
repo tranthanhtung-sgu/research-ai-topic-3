@@ -1,0 +1,3 @@
+# ECG Analysis Error
+
+NeuroKit processing failed on selected lead: The data length is too small to be segmented.

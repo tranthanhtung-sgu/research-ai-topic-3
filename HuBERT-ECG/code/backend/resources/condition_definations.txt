@@ -1,0 +1,90 @@
+**Normal Condition ECG**
+
+**Definition:** The physiological rhythm originating from the SA node, conducting normally through the heart. Represents the baseline healthy electrical activity.
+
+**ECG Characteristics :**
+
+* **Rate:** 60–100 bpm (adults at rest).
+* **Rhythm:** Regular (consistent P–P and R–R intervals).
+* **P waves:** Uniform morphology, upright in I, II, aVF; inverted in aVR; one P wave precedes each QRS complex.
+* **PR Interval:** Constant, 0.12–0.20 seconds.
+* **QRS Duration:** Narrow, typically < 0.10–0.12 seconds.
+* **P : QRS Ratio:** 1 : 1.
+
+---
+
+**Atrial Fibrillation (AFib)**
+
+**Definition:** AF is a chaotic, multi-wavelet re-entry arrhythmia in the atria. Because hundreds of foci fire simultaneously, organised atrial depolarisation never occurs and the AV node is bombarded by irregular impulses.
+
+**ECG Characteristics :**
+
+* **Rhythm / Heart rate:** Irregularly-irregular ventricular response; most patients with untreated (“rapid-AF”) conduct at ≈ 110 – 160 bpm, but the atrial mass is really firing chaotically at ≈ 350 – 600 bpm.
+* **P waves:** No discrete P waves; coarse or fine fibrillatory (f) waves replace the isoelectric line.
+* **P : QRS Ratio:** None (AV node receives a barrage of impulses).
+* **PR Interval:** Not measurable.
+* **QRS Duration:** Usually < 120 ms; will widen only if a pre-existing bundle-branch block or rate-related aberrancy is present.
+
+---
+
+**Atrial Flutter**
+
+**Definition:** Rapid but organized atrial electrical activity, typically from a large re-entrant circuit (usually in the right atrium).
+
+**ECG Characteristics :**
+
+* **Atrial rate:** ≈ 300 bpm (range 240 – 350).
+* **Ventricular rate:** Determined by the AV block ratio
+  • 2 : 1 block ⇒ ≈ 150 bpm (most common)
+  • 3 : 1 block ⇒ ≈ 100 bpm, etc.
+* **P waves:** Absent; replaced by saw-tooth flutter (F) waves best seen in leads II, III, aVF.
+* **P : QRS Ratio:** Typically 2 : 1 but may be 3 : 1, 4 : 1 or variable.
+* **PR Interval:** Not measurable (no discrete P waves).
+* **QRS Duration:** < 120 ms unless concurrent bundle-branch block.
+
+---
+
+**First-Degree Atrioventricular (AV) Block**
+
+**Definition:** Sinus impulses reach the ventricles, but conduction through the AV node or His bundle is slowed, so every beat is delayed but none are dropped.
+
+**ECG Characteristics :**
+
+* **Heart rate:** Normal sinus rate (60 – 100 bpm) unless another rhythm abnormality co-exists.
+* **P waves:** Normal morphology; every P followed by QRS.
+* **P : QRS Ratio:** 1 : 1.
+* **PR Interval:** Prolonged > 200 ms (≥ 5 small squares), constant from beat to beat.
+* **QRS Duration:** Normal (< 120 ms).
+
+---
+
+**Right Bundle-Branch Block (RBBB)**
+
+**Definition:** In RBBB, activation of the right ventricle must spread from the left, so right-sided depolarisation is delayed.
+
+**ECG Characteristics :**
+
+* **Heart rate & P waves:** Determined by the underlying rhythm (often normal sinus).
+* **PR Interval:** Normal unless another AV-nodal disorder co-exists.
+* **QRS Duration:** ≥ 120 ms.
+* **Morphology:**
+  • rSR′ or “M-shaped” QRS in V₁–V₃
+  • Broad, slurred S-wave in leads I, aVL, V₅–V₆
+* **P : QRS Ratio:** 1 : 1 (conduction block is infranodal).
+
+---
+
+**Left Bundle-Branch Block (LBBB)**
+
+**Definition:** In LBBB, the left ventricular conduction system is blocked, so depolarisation proceeds from right to left across the septum, greatly widening the QRS.
+
+**ECG Characteristics :**
+
+* **Heart rate & P waves:** Depend on underlying rhythm (usually sinus).
+* **PR Interval:** Normal unless concurrent AV-nodal disease.
+* **QRS Duration:** ≥ 120 ms with distinctive shape.
+* **Morphology:**
+  • Deep, broad S-wave (or QS) in V₁–V₂
+  • Broad, often notched R-wave in V₅–V₆, I, aVL
+  • “Appropriate discordance” – ST/T changes opposite the major QRS deflection
+* **P : QRS Ratio:** 1 : 1.

@@ -1,0 +1,63 @@
+## Ultra Comprehensive ECG Analysis for Lead II (Right bundle branch block (Confidence: 0.64) CASE) ##
+## WITH COMPARATIVE PLOTS vs. NSR REFERENCE (Lead II) ##
+Analyzing Lead: Lead II
+Sampling Rate: 100 Hz
+Signal Duration: 10.00 seconds
+------------------------------
+
+### Comparative Plots Generated ###
+- RR Distribution: Comparative view of RR intervals
+- Segmented Heartbeats: Comparative view of average heartbeats
+
+### A. Fiducial Points Detection (CASE) ###
+- P_Onsets detected: 15
+- P_Peaks detected: 15
+- P_Offsets detected: 15
+- Q_Peaks detected: 27
+- R_Onsets detected: 15
+- R_Peaks detected: 29
+- R_Offsets detected: 6
+- S_Peaks detected: 28
+- T_Onsets detected: 6
+- T_Peaks detected: 6
+- T_Offsets detected: 6
+
+### B. Intervals and Durations (CASE) ###
+- RR Mean (ms): 342.14ms (StdDev: 41.26, N: 28)
+- PP Mean (ms): 607.14ms (StdDev: 407.04, N: 14)
+- PR Mean (ms): 96.00ms (StdDev: 14.97, N: 5)
+- QRS Mean (ms): 132.50ms (StdDev: 32.69, N: 4)
+- QT Mean (ms): 433.33ms (StdDev: 158.39, N: 3)
+- QTc Mean (Bazett): 778.29 (StdDev: 284.49, N: 3)
+
+### C. Amplitudes (from Cleaned ECG - CASE) ###
+- P Peak Amp: Mean=0.096, Std=0.085 (N=15) arb. units
+- Q Peak Amp: Mean=-0.048, Std=0.037 (N=27) arb. units
+- R Peak Amp: Mean=0.383, Std=0.118 (N=29) arb. units
+- S Peak Amp: Mean=-0.280, Std=0.054 (N=28) arb. units
+- T Peak Amp: Mean=-0.090, Std=0.035 (N=6) arb. units
+
+### D. ST-Segment Analysis (Basic - CASE) ###
+- ST Mean Dev (J+60ms): -0.117 arb. units (Std: 0.078, N: 6)
+
+### E. Axis Information (CASE - General Note) ###
+- QRS Axis, P-wave axis, T-wave axis: Full calculation requires multiple specific leads (e.g., I & aVF). This report focuses on single-lead parameters derived from the chosen lead.
+
+### F. Heart Rate Variability (HRV) & Rate (CASE) ###
+- Avg HR (from RR): 175.37 bpm
+  **HRV Metrics (nk.hrv() - CASE):** (Note: Freq-domain & non-linear metrics need longer, stable recordings)
+
+### G. Signal Quality (CASE) ###
+- Mean ECG Quality: 0.695 (NeuroKit method)
+
+### H. Cardiac Phase Information (CASE - General Note) ###
+- Cardiac phase plotting is not included in this comparative version for brevity. See NeuroKit examples if specific phase plots are needed.
+
+### I. Representative Heartbeats (CASE - Superimposed) ###
+- See comparative heartbeat plot showing superimposed beats and average for both conditions.
+
+==============================
+### Clinical Summary Suggestion (Right bundle branch block (Confidence: 0.64) CASE) ###
+Review parameters from Sections A-H and compare visually with REFERENCE in plots.
+Please correlate with full clinical picture. This is not a diagnostic tool.
+==============================

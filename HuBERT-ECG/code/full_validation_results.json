@@ -1,0 +1,98 @@
+{
+    "validation01": {
+        "validation01": {
+            "NORMAL": {
+                "probability": 0.03102930448949337,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.06257070600986481,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6417190432548523,
+                "prediction": true
+            }
+        }
+    },
+    "validation02": {
+        "validation02": {
+            "NORMAL": {
+                "probability": 0.0260626170784235,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.05168568342924118,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6615137457847595,
+                "prediction": true
+            }
+        }
+    },
+    "validation03": {
+        "validation03": {
+            "NORMAL": {
+                "probability": 0.03203567862510681,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.06304359436035156,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6546905040740967,
+                "prediction": true
+            }
+        }
+    },
+    "validation04": {
+        "validation04": {
+            "NORMAL": {
+                "probability": 0.028194447979331017,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.060375940054655075,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6467442512512207,
+                "prediction": true
+            }
+        }
+    },
+    "validation05": {
+        "validation05": {
+            "NORMAL": {
+                "probability": 0.024768691509962082,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.052119627594947815,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6758981943130493,
+                "prediction": true
+            }
+        }
+    },
+    "validation06": {
+        "validation06": {
+            "NORMAL": {
+                "probability": 0.028802886605262756,
+                "prediction": false
+            },
+            "Atrial Fibrillation": {
+                "probability": 0.05412490665912628,
+                "prediction": false
+            },
+            "Atrial Flutter": {
+                "probability": 0.6678987145423889,
+                "prediction": true
+            }
+        }
+    }
+}
