@@ -43,7 +43,7 @@ st.title("🫀 ECG Condition Detection — HuBERT-ECG")
 
 OPENAI_API_KEY = (
     st.sidebar.text_input("🔑 Paste your OpenAI key", type="password")
-    or os.getenv("OPENAI_API_KEY", "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")
+    or os.getenv("OPENAI_API_KEY", "")
 )
 
 # Display a warning if no API key is provided
