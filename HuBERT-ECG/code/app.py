@@ -43,8 +43,12 @@ st.title("🫀 ECG Condition Detection — HuBERT-ECG")
 
 OPENAI_API_KEY = (
     st.sidebar.text_input("🔑 Paste your OpenAI key", type="password")
-    or os.getenv("OPENAI_API_KEY", "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")
+    or os.getenv("OPENAI_API_KEY", "")
 )
+
+# Display a warning if no API key is provided
+if not OPENAI_API_KEY:
+    st.sidebar.warning("⚠️ No OpenAI API key provided. The app will run without generating detailed reports.")
 
 # Add model selection in sidebar
 model_path = st.sidebar.text_input("Model Path", value=DEFAULT_MODEL_PATH)
@@ -197,7 +201,15 @@ def process_ecg(ecg_data, sample_name="Sample", model_path=DEFAULT_MODEL_PATH):
                                       case_condition_short_label=cond,
                                       ref_npy_path_relative="./backend/validation01/validation01.npy")
     print(figs)
-    rpt = report.write(cond, figs, report_text, OPENAI_API_KEY)
+    
+    # Check if API key is provided
+    if not OPENAI_API_KEY:
+        # Use default report if no API key is available
+        rpt = "# API Key Required\n\nPlease provide an OpenAI API key in the sidebar to generate a detailed report.\n\n## ECG Summary\n" + report_text
+    else:
+        # Generate report using OpenAI
+        rpt = report.write(cond, figs, report_text, OPENAI_API_KEY)
+        
     return cond, figs, rpt, detailed_results
 
 if st.button("🚀 Start", type="primary"):
